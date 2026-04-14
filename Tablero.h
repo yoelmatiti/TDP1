@@ -3,7 +3,7 @@
 
 #include "Bloque.h"
 #include "Salida.h"
-#include "Compuerta.h"
+#include "Portal.h"
 
 // Usamos un enum para las direcciones de movimiento
 enum class Direccion { U, D, L, R };
@@ -17,13 +17,17 @@ private:
     // NUEVO: Variable de paso/turno actual
     int pasoActual;
 
+    // Variables para A*
+    int g, h;
+
     // Estructuras manuales (reemplazan a std::vector)
     Bloque* bloques;        
     int numBloques;
+    int bloquesRestantes;
     Salida* salidas;
     int numSalidas;
-    Compuerta* compuertas;
-    int numCompuertas;
+    Portal* portales;
+    int numPortales;
 
     // Buffer interno para representación única
     mutable char* representacion;
@@ -48,7 +52,7 @@ public:
     ~Tablero();                              // Destructor
 
     // Métodos principales del juego
-    bool moverBloque(int id, Direccion dir, int celdas);
+    int moverBloque(int id, Direccion dir, int celdas);
     void actualizarAmbiente(); // Para compuertas y salidas temporales
     bool esEstadoFinal() const;
 
@@ -57,19 +61,19 @@ public:
     int getHeight() const { return height; }
     int getNumBloques() const { return numBloques; }
     int getNumSalidas() const { return numSalidas; }
-    int getNumCompuertas() const { return numCompuertas; }
+    int getNumPortales() const { return numPortales; }
     int getPasoActual() const { return pasoActual; }
     
-    Bloque* getBloques() { return bloques; }
-    Salida* getSalidas() { return salidas; }
-    Compuerta* getCompuertas() { return compuertas; }
-    char** getMatriz() { return matriz; }
+    Bloque* getBloques() const { return bloques; }
+    Salida* getSalidas() const { return salidas; }
+    Portal* getPortales() const { return portales; }
+    char** getMatriz() const { return matriz; }
 
     // Setters para inicialización desde parser
     void setDimensiones(int w, int h);
     void agregarBloque(Bloque* bloque);
     void agregarSalida(Salida* salida);
-    void agregarCompuerta(Compuerta* compuerta);
+    void agregarPortal(Portal* portal);
 
     // Representación única del estado
     const char* getRepresentacion() const;

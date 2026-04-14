@@ -2,7 +2,7 @@
 #define ALGORITMOASTAR_H
 
 #include "NodoASTAR.h"
-#include "ColaPrioridad.h"
+#include "COLAPRIORIDAD.h"
 #include "TablaHash.h"
 
 class AlgoritmoASTAR {

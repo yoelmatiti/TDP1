@@ -17,27 +17,48 @@ AlgoritmoASTAR::~AlgoritmoASTAR() {
     if (!solucion) {
         limpiar();
     }
-    if (abierta) delete abierta;
+    if (abierta) delete abierta; 
     if (cerrada) delete cerrada;
 }
 
 int AlgoritmoASTAR::calcularHeuristica(const Tablero& t) {
     int heuristica = 0;
+    int numIncognitos = 0;
     
     for (int i = 0; i < t.getNumBloques(); i++) {
-        int xBloque = t.getBloques()[i].getX();
-        int yBloque = t.getBloques()[i].getY();
-        
-        int distMin = INT_MAX;
-        for (int j = 0; j < t.getNumSalidas(); j++) {
-            if (t.getSalidas()[j].getColor() == t.getBloques()[i].getColor()) {
+        char colorBloque = t.getBloques()[i].getColor();
+        if (colorBloque == '?') {
+            numIncognitos++;
+            // Para incógnitos, usar distancia a la salida más cercana de cualquier color
+            int distMin = INT_MAX;
+            for (int j = 0; j < t.getNumSalidas(); j++) {
                 int xSalida = t.getSalidas()[j].getX();
                 int ySalida = t.getSalidas()[j].getY();
-                int dist = abs(xBloque - xSalida) + abs(yBloque - ySalida);
+                int dist = abs(t.getBloques()[i].getX() - xSalida) + abs(t.getBloques()[i].getY() - ySalida);
                 if (dist < distMin) distMin = dist;
             }
+            if (distMin != INT_MAX) heuristica += distMin;
+        } else {
+            // Para bloques conocidos, distancia a salida de mismo color
+            int xBloque = t.getBloques()[i].getX();
+            int yBloque = t.getBloques()[i].getY();
+            
+            int distMin = INT_MAX;
+            for (int j = 0; j < t.getNumSalidas(); j++) {
+                if (t.getSalidas()[j].getColor() == colorBloque) {
+                    int xSalida = t.getSalidas()[j].getX();
+                    int ySalida = t.getSalidas()[j].getY();
+                    int dist = abs(xBloque - xSalida) + abs(yBloque - ySalida);
+                    if (dist < distMin) distMin = dist;
+                }
+            }
+            if (distMin != INT_MAX) heuristica += distMin;
         }
-        if (distMin != INT_MAX) heuristica += distMin;
+    }
+    
+    // Prioridad de colores: penalizar estados con bloques incógnitos
+    if (numIncognitos > 0) {
+        heuristica += numIncognitos * 50;  // Penalización arbitraria para priorizar resolver incógnitos
     }
     
     return heuristica;
@@ -51,7 +72,8 @@ void AlgoritmoASTAR::generarVecinos(NodoASTAR* nodoPadre) {
             for (int celdas = 1; celdas <= 10; celdas++) {
                 Tablero* nuevoTablero = new Tablero(*nodoPadre->tablero);
                 
-                if (nuevoTablero->moverBloque(bloqueID, direcciones[dir], celdas)) {
+                int distanciaMovida = nuevoTablero->moverBloque(bloqueID, direcciones[dir], celdas);
+                if (distanciaMovida > 0) {
                     if (cerrada->existe(*nuevoTablero)) {
                         delete nuevoTablero;
                         continue;
@@ -59,7 +81,7 @@ void AlgoritmoASTAR::generarVecinos(NodoASTAR* nodoPadre) {
                     
                     cerrada->insertar(*nuevoTablero);
                     
-                    int nuevoG = nodoPadre->g + celdas;
+                    int nuevoG = nodoPadre->g + distanciaMovida;
                     int nuevoH = calcularHeuristica(*nuevoTablero);
                     NodoASTAR* nuevoNodo = new NodoASTAR(nuevoTablero, nuevoG, nuevoH, nodoPadre);
                     

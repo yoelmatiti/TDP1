@@ -3,9 +3,9 @@
 
 // Constructor por defecto inicializando punteros a null
 Tablero::Tablero() : width(0), height(0), matriz(nullptr), g(0), h(0), 
-                     bloques(nullptr), numBloques(0), salidas(nullptr), 
-                     numSalidas(0), compuertas(nullptr), numCompuertas(0), 
-                     representacion(nullptr) {}
+                     bloques(nullptr), numBloques(0), bloquesRestantes(0), 
+                     salidas(nullptr), numSalidas(0), portales(nullptr), 
+                     numPortales(0), representacion(nullptr) {}
 
 // Destructor: Limpia la memoria dinámica [cite: 122]
 Tablero::~Tablero() {
@@ -20,11 +20,9 @@ void Tablero::liberarMemoria() {
         delete[] matriz;
         matriz = nullptr;
     }
-    // Nota: bloques, salidas y compuertas también deben ser liberados 
-    // si fueron creados con 'new[]'
     delete[] bloques;
     delete[] salidas;
-    delete[] compuertas;
+    delete[] portales;
     delete[] representacion;
     representacion = nullptr;
 }
@@ -51,7 +49,7 @@ void Tablero::copiarDesde(const Tablero& otra) {
     this->bloquesRestantes = otra.bloquesRestantes;
     this->numBloques = otra.numBloques;
     this->numSalidas = otra.numSalidas;
-    this->numCompuertas = otra.numCompuertas;
+    this->numPortales = otra.numPortales;
     this->representacion = nullptr;
 
     // Copiar la matriz de caracteres (Deep Copy)
@@ -67,19 +65,26 @@ void Tablero::copiarDesde(const Tablero& otra) {
         this->matriz = nullptr;
     }
 
-    // Copiar arreglos de objetos (Asumiendo que Bloque, Salida y Compuerta 
+    // Copiar arreglos de objetos (Asumiendo que Bloque, Salida y Portal 
     // tienen sus propios operadores de asignación)
     if (otra.bloques != nullptr) {
         this->bloques = new Bloque[numBloques];
         for (int i = 0; i < numBloques; i++) this->bloques[i] = otra.bloques[i];
     }
-    // ... repetir para salidas y compuertas ...
+    if (otra.salidas != nullptr) {
+        this->salidas = new Salida[numSalidas];
+        for (int i = 0; i < numSalidas; i++) this->salidas[i] = otra.salidas[i];
+    }
+    if (otra.portales != nullptr) {
+        this->portales = new Portal[numPortales];
+        for (int i = 0; i < numPortales; i++) this->portales[i] = otra.portales[i];
+    }
 }
 
 bool Tablero::esEstadoFinal() const {
     // El juego termina si todos los bloques salieron [cite: 116]
-    // Esto depende de tu lógica interna, por ejemplo si numBloques llega a 0
-    return numBloques == 0;
+    // Esto depende de tu lógica interna, por ejemplo si bloquesRestantes llega a 0
+    return bloquesRestantes == 0;
 }
 
 const char* Tablero::getRepresentacion() const {
@@ -90,8 +95,8 @@ const char* Tablero::getRepresentacion() const {
 }
 
 void Tablero::generarRepresentacion() const {
-    // Estimar tamaño: matriz (width*height) + compuertas (numCompuertas * 10) + salidas (numSalidas * 10) + separadores
-    int tam = width * height + numCompuertas * 10 + numSalidas * 10 + 100;
+    // Estimar tamaño: matriz (width*height) + portales (numPortales * 10) + salidas (numSalidas * 10) + separadores
+    int tam = width * height + numPortales * 10 + numSalidas * 10 + 100;
     representacion = new char[tam];
     int pos = 0;
 
@@ -103,19 +108,136 @@ void Tablero::generarRepresentacion() const {
     }
     representacion[pos++] = '|'; // Separador
 
-    // Incluir colores de compuertas
-    for (int i = 0; i < numCompuertas; i++) {
-        // Asumiendo Compuerta tiene int color;
-        int color = compuertas[i].color; // Ajusta según la estructura real
-        pos += sprintf(representacion + pos, "%d,", color);
+    // Incluir largos de salidas
+    for (int i = 0; i < numSalidas; i++) {
+        int largo = salidas[i].getLongitudActual(0); // Usar longitud inicial
+        pos += sprintf(representacion + pos, "%d,", largo);
     }
     representacion[pos++] = '|'; // Separador
 
-    // Incluir largos de salidas
-    for (int i = 0; i < numSalidas; i++) {
-        // Asumiendo Salida tiene int largo;
-        int largo = salidas[i].largo; // Ajusta según la estructura real
-        pos += sprintf(representacion + pos, "%d,", largo);
+    // Incluir colores de portales
+    for (int i = 0; i < numPortales; i++) {
+        char color = portales[i].getColor();
+        pos += sprintf(representacion + pos, "%c,", color);
     }
     representacion[pos] = '\0'; // Terminar cadena
+}
+
+void Tablero::agregarPortal(Portal* portal) {
+    // Implementación básica: redimensionar arreglo
+    Portal* nuevo = new Portal[numPortales + 1];
+    for (int i = 0; i < numPortales; i++) nuevo[i] = portales[i];
+    nuevo[numPortales] = *portal;
+    delete[] portales;
+    portales = nuevo;
+    numPortales++;
+}
+
+int Tablero::moverBloque(int id, Direccion dir, int celdas) {
+    // Encontrar el bloque
+    if (id < 0 || id >= numBloques) return 0;
+    Bloque& bloque = bloques[id];
+
+    // Calcular dirección
+    int dx = 0, dy = 0;
+    switch (dir) {
+        case Direccion::U: dy = -1; break;
+        case Direccion::D: dy = 1; break;
+        case Direccion::L: dx = -1; break;
+        case Direccion::R: dx = 1; break;
+    }
+
+    // Encontrar la distancia máxima posible (<= celdas)
+    int distanciaMax = 0;
+    for (int dist = 1; dist <= celdas; dist++) {
+        if (esMovimientoValido(id, dir, dist)) {
+            distanciaMax = dist;
+        } else {
+            break;
+        }
+    }
+
+    // Aplicar el movimiento si es posible
+    if (distanciaMax > 0) {
+        aplicarMovimiento(id, dir, distanciaMax);
+    }
+
+    return distanciaMax;
+}
+
+bool Tablero::esMovimientoValido(int bloqueID, Direccion dir, int celdas) const {
+    if (bloqueID < 0 || bloqueID >= numBloques) return false;
+    const Bloque& bloque = bloques[bloqueID];
+
+    // Calcular nueva posición del anclaje
+    int dx = 0, dy = 0;
+    switch (dir) {
+        case Direccion::U: dy = -1; break;
+        case Direccion::D: dy = 1; break;
+        case Direccion::L: dx = -1; break;
+        case Direccion::R: dx = 1; break;
+    }
+    int nuevaX = bloque.getX() + dx * celdas;
+    int nuevaY = bloque.getY() + dy * celdas;
+
+    // Verificar geometría: todas las celdas del bloque deben estar libres
+    for (int relY = 0; relY < bloque.getAltoGeo(); relY++) {
+        for (int relX = 0; relX < bloque.getAnchoGeo(); relX++) {
+            if (!bloque.getGeometria(relY, relX)) continue; // Celda no ocupada por el bloque
+
+            int absY = nuevaY + relY;
+            int absX = nuevaX + relX;
+
+            // Dentro del tablero
+            if (absY < 0 || absY >= height || absX < 0 || absX >= width) return false;
+
+            // No pared
+            if (matriz[absY][absX] == '#') return false;
+
+            // No otro bloque ocupando la celda
+            for (int otroID = 0; otroID < numBloques; otroID++) {
+                if (otroID == bloqueID) continue;
+                if (bloques[otroID].ocupaCelda(absY, absX)) return false;
+            }
+
+            // Portales: verificar color
+            bool hayPortal = false;
+            for (int p = 0; p < numPortales; p++) {
+                if (portales[p].getX() == absX && portales[p].getY() == absY) {
+                    hayPortal = true;
+                    if (!portales[p].puedePasar(bloque.getColor(), g)) return false;
+                    break;
+                }
+            }
+            // Si no hay portal, la celda debe estar vacía (excepto si es portal)
+            if (!hayPortal && matriz[absY][absX] != ' ') return false;
+        }
+    }
+
+    return true;
+}
+
+void Tablero::aplicarMovimiento(int bloqueID, Direccion dir, int distancia) {
+    if (bloqueID < 0 || bloqueID >= numBloques) return;
+    Bloque& bloque = bloques[bloqueID];
+
+    int dx = 0, dy = 0;
+    switch (dir) {
+        case Direccion::U: dy = -1; break;
+        case Direccion::D: dy = 1; break;
+        case Direccion::L: dx = -1; break;
+        case Direccion::R: dx = 1; break;
+    }
+
+    bloque.mover(dx * distancia, dy * distancia);
+}
+
+void Tablero::actualizarCompuertas() {
+    // Actualizar portales si es necesario (cambio de color con tiempo)
+    // Por ahora vacío
+}
+
+void Tablero::actualizarSalidas() {
+    // Actualizar salidas si cambian con tiempo
+    // Por ahora vacío
 }
