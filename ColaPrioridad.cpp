@@ -1,25 +1,32 @@
 #include "COLAPRIORIDAD.h"
 
-// Constructor
+// Constructor: Inicializa el arreglo de punteros
 ColaPrioridad::ColaPrioridad(int capInitial) : capacidad(capInitial), tamano(0) {
     heap = new NodoASTAR*[capacidad];
 }
 
-// Destructor (CORREGIDO: Libera todos los nodos restantes)
+// Destructor: Solo libera el contenedor (arreglo de punteros)
+// Los NodoASTAR deben ser liberados por el Solver/TablaHash para evitar Double Free
 ColaPrioridad::~ColaPrioridad() {
-    // Liberar cada nodo en el arreglo antes de liberar el arreglo
-    for (int i = 0; i < tamano; i++) {
-        delete heap[i];
-    }
     delete[] heap;
 }
 
-// Subir un elemento en el heap (para mantener la propiedad de min-heap por f)
+// Implementación del desempate (Optimización sugerida en clase)
+// Prioriza menor F. Si F es igual, prioriza mayor G.
 void ColaPrioridad::subir(int idx) {
     while (idx > 0) {
         int padre = (idx - 1) / 2;
-        if (heap[idx]->f >= heap[padre]->f) break;
-        // Intercambiar
+        
+        bool debeSubir = false;
+        if (heap[idx]->f < heap[padre]->f) {
+            debeSubir = true;
+        } else if (heap[idx]->f == heap[padre]->f && heap[idx]->g > heap[padre]->g) {
+            debeSubir = true; // Desempate por movimiento más largo
+        }
+
+        if (!debeSubir) break;
+
+        // Intercambio manual
         NodoASTAR* temp = heap[idx];
         heap[idx] = heap[padre];
         heap[padre] = temp;
@@ -27,41 +34,51 @@ void ColaPrioridad::subir(int idx) {
     }
 }
 
-// Bajar un elemento en el heap
+// Versión iterativa de Bajar (Más eficiente que la recursiva)
 void ColaPrioridad::bajar(int idx) {
-    if (tamano <= 1) return;
+    while (true) {
+        int hijoIzq = 2 * idx + 1;
+        int hijoDer = 2 * idx + 2;
+        int menor = idx;
 
-    int hijoIzq = 2 * idx + 1;
-    int hijoDer = 2 * idx + 2;
-    int menor = idx;
+        // Verificar hijo izquierdo
+        if (hijoIzq < tamano) {
+            if (heap[hijoIzq]->f < heap[menor]->f || 
+               (heap[hijoIzq]->f == heap[menor]->f && heap[hijoIzq]->g > heap[menor]->g)) {
+                menor = hijoIzq;
+            }
+        }
 
-    if (hijoIzq < tamano && heap[hijoIzq]->f < heap[menor]->f) {
-        menor = hijoIzq;
-    }
-    if (hijoDer < tamano && heap[hijoDer]->f < heap[menor]->f) {
-        menor = hijoDer;
-    }
-    if (menor != idx) {
-        // Intercambiar
-        NodoASTAR* temp = heap[idx];
-        heap[idx] = heap[menor];
-        heap[menor] = temp;
-        bajar(menor);
+        // Verificar hijo derecho
+        if (hijoDer < tamano) {
+            if (heap[hijoDer]->f < heap[menor]->f || 
+               (heap[hijoDer]->f == heap[menor]->f && heap[hijoDer]->g > heap[menor]->g)) {
+                menor = hijoDer;
+            }
+        }
+
+        if (menor != idx) {
+            NodoASTAR* temp = heap[idx];
+            heap[idx] = heap[menor];
+            heap[menor] = temp;
+            idx = menor;
+        } else {
+            break;
+        }
     }
 }
 
-// Redimensionar el arreglo si se llena
 void ColaPrioridad::redimensionar() {
-    capacidad *= 2;
-    NodoASTAR** nuevoHeap = new NodoASTAR*[capacidad];
+    int nuevaCapacidad = capacidad * 2;
+    NodoASTAR** nuevoHeap = new NodoASTAR*[nuevaCapacidad];
     for (int i = 0; i < tamano; i++) {
         nuevoHeap[i] = heap[i];
     }
     delete[] heap;
     heap = nuevoHeap;
+    capacidad = nuevaCapacidad;
 }
 
-// Insertar un nodo
 void ColaPrioridad::push(NodoASTAR* nodo) {
     if (tamano == capacidad) {
         redimensionar();
@@ -71,14 +88,12 @@ void ColaPrioridad::push(NodoASTAR* nodo) {
     tamano++;
 }
 
-// Extraer el nodo con menor f (CORREGIDO: Maneja caso tamano == 1)
 NodoASTAR* ColaPrioridad::pop() {
     if (tamano == 0) return nullptr;
     
     NodoASTAR* raiz = heap[0];
     tamano--;
     
-    // Solo necesita reheapificar si hay más de un elemento
     if (tamano > 0) {
         heap[0] = heap[tamano];
         bajar(0);

@@ -37,6 +37,7 @@ private:
     void copiarDesde(const Tablero& otra);
     void generarRepresentacion() const;
     bool esMovimientoValido(int bloqueID, Direccion dir, int celdas) const;
+    void verificarRevelacionIncognitos();
     void aplicarMovimiento(int bloqueID, Direccion dir, int distancia);
     void actualizarCompuertas();
     void actualizarSalidas();

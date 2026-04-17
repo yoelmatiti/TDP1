@@ -1,27 +1,30 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
-#include "State.h"
-#include "COLAPRIORIDAD.h"
+#include "Tablero.h"
+#include "ColaPrioridad.h"
 #include "TablaHash.h"
+#include "NodoASTAR.h"
 
 class Solver {
 private:
-    ColaPrioridad open;    // Nodos por explorar
-    TablaHash closed;      // Tableros ya visitados
+    // Estructuras de búsqueda
+    ColaPrioridad open;
+    TablaHash closed;
     
-    // Configuración estática (Background)
-    char** paredes; 
+    // Datos del problema actual
+    Tablero* tableroInicial;
     int ancho, alto;
-
-    void generarSucesores(State* actual);
-    int calcularHeuristica(Tablero* t);
+    char** paredes; // Si decides mantener las paredes aparte
 
 public:
     Solver();
     ~Solver();
+
     void cargarProblema(const char* archivo);
     void resolver();
+    void generarSucesores(NodoASTAR* actual);
+    int calcularHeuristica(Tablero* t);
 };
 
 #endif

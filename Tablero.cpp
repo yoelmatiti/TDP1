@@ -134,20 +134,11 @@ void Tablero::agregarPortal(Portal* portal) {
 }
 
 int Tablero::moverBloque(int id, Direccion dir, int celdas) {
-    // Encontrar el bloque
     if (id < 0 || id >= numBloques) return 0;
-    Bloque& bloque = bloques[id];
+    
+    // Si el bloque no está activo, no se mueve
+    if (!bloques[id].estaActivo()) return 0;
 
-    // Calcular dirección
-    int dx = 0, dy = 0;
-    switch (dir) {
-        case Direccion::U: dy = -1; break;
-        case Direccion::D: dy = 1; break;
-        case Direccion::L: dx = -1; break;
-        case Direccion::R: dx = 1; break;
-    }
-
-    // Encontrar la distancia máxima posible (<= celdas)
     int distanciaMax = 0;
     for (int dist = 1; dist <= celdas; dist++) {
         if (esMovimientoValido(id, dir, dist)) {
@@ -157,7 +148,6 @@ int Tablero::moverBloque(int id, Direccion dir, int celdas) {
         }
     }
 
-    // Aplicar el movimiento si es posible
     if (distanciaMax > 0) {
         aplicarMovimiento(id, dir, distanciaMax);
     }
@@ -217,19 +207,57 @@ bool Tablero::esMovimientoValido(int bloqueID, Direccion dir, int celdas) const 
     return true;
 }
 
-void Tablero::aplicarMovimiento(int bloqueID, Direccion dir, int distancia) {
-    if (bloqueID < 0 || bloqueID >= numBloques) return;
-    Bloque& bloque = bloques[bloqueID];
-
-    int dx = 0, dy = 0;
-    switch (dir) {
-        case Direccion::U: dy = -1; break;
-        case Direccion::D: dy = 1; break;
-        case Direccion::L: dx = -1; break;
-        case Direccion::R: dx = 1; break;
+void Tablero::verificarRevelacionIncognitos() {
+    int coloresActivos = 0;
+    for (int i = 0; i < numBloques; i++) {
+        // Contamos cuántos bloques con color definido siguen en el tablero
+        if (bloques[i].estaActivo() && !bloques[i].getEsIncognito()) {
+            coloresActivos++;
+        }
     }
 
+    // Si ya no quedan bloques de colores normales
+    if (coloresActivos == 0) {
+        for (int i = 0; i < numBloques; i++) {
+            if (bloques[i].estaActivo() && bloques[i].getEsIncognito()) {
+                // CORRECCIÓN: Llamada sin argumentos
+                bloques[i].revelarColor(); 
+            }
+        }
+    }
+}
+
+void Tablero::aplicarMovimiento(int bloqueID, Direccion dir, int distancia) {
+    Bloque& bloque = bloques[bloqueID];
+    
+    int dx = 0, dy = 0;
+    // ... tu switch de direcciones ...
+    
     bloque.mover(dx * distancia, dy * distancia);
+    this->g += distancia; // El tiempo avanza con cada celda recorrida
+
+    // VERIFICAR SALIDA
+    for (int s = 0; s < numSalidas; s++) {
+        // Si el bloque de color 'A' toca la salida de color 'A'
+        if (salidas[s].getColor() == bloque.getColor()) {
+            // Verificar si la geometría del bloque coincide con la posición de la salida
+            if (bloque.ocupaCelda(salidas[s].getY(), salidas[s].getX())) {
+                bloque.setActivo(false); // Función que agregamos antes
+                bloque.mover(-100, -100); // Sacar del mapa
+                bloquesRestantes--;
+                
+                // REVELAR INCOGNITOS si era el último de color
+                verificarRevelacionIncognitos(); 
+                break;
+            }
+        }
+    }
+    
+    // Al cambiar la posición, la representación antigua ya no sirve
+    if (representacion != nullptr) {
+        delete[] representacion;
+        representacion = nullptr;
+    }
 }
 
 void Tablero::actualizarCompuertas() {
