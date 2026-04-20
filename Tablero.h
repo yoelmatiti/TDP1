@@ -5,32 +5,30 @@
 #include "Salida.h"
 #include "Portal.h"
 
-// Usamos un enum para las direcciones de movimiento
+// Direcciones de movimiento
 enum class Direccion { U, D, L, R };
 
 class Tablero {
 private:
+    // 1. Dimensiones y Estado Básico
     int width;              // Ancho W
     int height;             // Alto H
-    char** matriz;          // Representación visual y de colisiones
-    
-    // NUEVO: Variable de paso/turno actual
-    int pasoActual;
+    int pasoActual;         // Turno actual del juego
 
-    // Variables para A*
-    int g, h;
+    // 2. Representación y Memoria
+    char** matriz;          // Matriz de caracteres (colisiones/visual)
+    mutable char* representacion; // Buffer para Tabla Hash
 
-    // Estructuras manuales (reemplazan a std::vector)
-    Bloque* bloques;        
+    // 3. Objetos del Juego (Gestión manual de memoria)
+    Bloque* bloques;
     int numBloques;
     int bloquesRestantes;
+
     Salida* salidas;
     int numSalidas;
+
     Portal* portales;
     int numPortales;
-
-    // Buffer interno para representación única
-    mutable char* representacion;
 
     // Métodos privados auxiliares
     void liberarMemoria();
@@ -43,40 +41,45 @@ private:
     void actualizarSalidas();
 
 public:
-    // Constructor para el estado inicial
+    // Constructores y Destructor (Regla de los tres)
     Tablero();
     Tablero(int w, int h);
+    Tablero(const Tablero& otra);
+    Tablero& operator=(const Tablero& otra);
+    ~Tablero();
 
-    // Regla de los tres (Indispensable sin STL)
-    Tablero(const Tablero& otra);            // Constructor de copia
-    Tablero& operator=(const Tablero& otra); // Operador de asignación
-    ~Tablero();                              // Destructor
-
-    // Métodos principales del juego
+    // Lógica Principal
     int moverBloque(int id, Direccion dir, int celdas);
-    void actualizarAmbiente(); // Para compuertas y salidas temporales
+    void actualizarAmbiente();
     bool esEstadoFinal() const;
 
-    // Getters
+    // Getters de Dimensiones y Estado
     int getWidth() const { return width; }
     int getHeight() const { return height; }
-    int getNumBloques() const { return numBloques; }
-    int getNumSalidas() const { return numSalidas; }
-    int getNumPortales() const { return numPortales; }
     int getPasoActual() const { return pasoActual; }
+    char** getMatriz() const { return matriz; }
+
+    // Getters de Objetos (Individuales para el Solver/Heurística)
+    int getNumBloques() const { return numBloques; }
+    const Bloque& getBloque(int i) const { return bloques[i]; }
+
+    int getNumSalidas() const { return numSalidas; }
+    const Salida& getSalida(int i) const { return salidas[i]; }
+
+    int getNumPortales() const { return numPortales; }
     
+    // Getters de Arreglos Completos
     Bloque* getBloques() const { return bloques; }
     Salida* getSalidas() const { return salidas; }
     Portal* getPortales() const { return portales; }
-    char** getMatriz() const { return matriz; }
 
-    // Setters para inicialización desde parser
+    // Setters e Inicialización (Parser)
     void setDimensiones(int w, int h);
     void agregarBloque(Bloque* bloque);
     void agregarSalida(Salida* salida);
     void agregarPortal(Portal* portal);
 
-    // Representación única del estado
+    // Salida y Persistencia
     const char* getRepresentacion() const;
     void imprimirTablero() const;
 };

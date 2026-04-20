@@ -2,22 +2,30 @@
 #define STATE_H
 
 #include "Tablero.h"
+#include <iostream>
 
-struct State {
-    Tablero* t;         // Estado físico del juego
-    State* padre;       // Para reconstruir el camino al final
-    
-    int g;              // Costo acumulado (distancia recorrida)
-    int h;              // Heurística (estimado al final)
-    int f;              // f = g + h
+class State {
+private:
+    Tablero* t;            // El estado del mundo (Tablero)
+    State* padre;          // Puntero al estado anterior
+    int g;                 // Costo real (pasos dados)
+    int h;                 // Estimación (heurística)
+    int f;                 // g + h
+    char* operacion;       // Descripción del movimiento (ej: "B0 Arriba")
 
-    // Información del movimiento que generó este estado
-    int bloqueID;
-    char direccion;
-    int celdas;
+public:
+    // Constructor que recibe el tablero, costos, padre y descripción
+    State(Tablero* tablero, int g_val, int h_val, State* p, const char* op = nullptr);
+    ~State();
 
-    State(Tablero* tablero, int g_val, int h_val, State* p = nullptr);
-    ~State(); // Al destruir el State, se destruye su Tablero
+    // Getters rápidos
+    Tablero* getTablero() const { return t; }
+    State* getPadre() const { return padre; }
+    int getG() const { return g; }
+    int getF() const { return f; }
+
+    // Métodos de utilidad (estilo profesor)
+    void printOperaciones(); // Imprime el camino desde el inicio usando recursión
 };
 
 #endif

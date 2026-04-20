@@ -1,59 +1,49 @@
 #include "Salida.h"
 
+// ... Constructores se mantienen igual, no tienen memoria dinámica ...
+// Constructor por defecto
 Salida::Salida() : color(' '), x(0), y(0), direccionX(0), direccionY(0), 
-                   longitudInicial(0), longitudFinal(0), pasoCambio(0) {}
-
-Salida::Salida(char c, int _x, int _y, int dx, int dy, int li, int lf, int p)
-    : color(c), x(_x), y(_y), direccionX(dx), direccionY(dy), 
-      longitudInicial(li), longitudFinal(lf), pasoCambio(p) {}
-
-// Constructor de copia
-Salida::Salida(const Salida& otro) {
-    *this = otro;
+                   longitudInicial(0), longitudFinal(0), pasoCambio(0) {
 }
-
-// Operador de asignación
-Salida& Salida::operator=(const Salida& otro) {
-    if (this != &otro) {
-        color = otro.color;
-        x = otro.x;
-        y = otro.y;
-        direccionX = otro.direccionX;
-        direccionY = otro.direccionY;
-        longitudInicial = otro.longitudInicial;
-        longitudFinal = otro.longitudFinal;
-        pasoCambio = otro.pasoCambio;
-    }
-    return *this;
-}
-
-// Destructor
-Salida::~Salida() {
-    // No hay memoria dinámica
-}
-
 int Salida::getLongitudActual(int tiempoG) const {
-    // Si el paso de cambio es 0 o el tiempo es menor al paso, es longitud inicial
     if (pasoCambio <= 0) return longitudInicial;
     
-    // Determinar en qué ciclo estamos
-    // (tiempoG / pasoCambio) % 2 == 0 -> Longitud Inicial
-    // (tiempoG / pasoCambio) % 2 == 1 -> Longitud Final
-    if ((tiempoG / pasoCambio) % 2 == 0) {
-        return longitudInicial;
-    } else {
-        return longitudFinal;
-    }
+    // Matemática modular: alterna entre Inicial y Final cada 'pasoCambio'
+    return ((tiempoG / pasoCambio) % 2 == 0) ? longitudInicial : longitudFinal;
 }
 
+/**
+ * OPTIMIZACIÓN MAESTRA:
+ * En lugar de un bucle FOR, verificamos si el punto (f,c) está en la línea
+ * usando la distancia relativa y la dirección.
+ */
 bool Salida::esParteDeSalida(int f, int c, int tiempoG) const {
     int L = getLongitudActual(tiempoG);
+    if (L <= 0) return false;
+
+    // 1. Calcular distancia relativa desde el origen de la salida
+    int diffX = c - x;
+    int diffY = f - y;
+
+    // 2. Verificar si el punto está alineado con la dirección de la salida
+    // Si direccionX es 1, diffX debe ser positivo. Si es 0, diffX debe ser 0.
     
-    // Verificar si la celda (f, c) está en la línea de la salida
-    for (int i = 0; i < L; i++) {
-        int currX = x + (i * direccionX);
-        int currY = y + (i * direccionY);
-        if (currX == c && currY == f) return true;
+    int pasoK; // Representa cuántos pasos hay desde el origen (x,y)
+    
+    if (direccionX != 0) {
+        if (diffY != 0 && direccionY == 0) return false; // Desalineado en Y
+        pasoK = diffX / direccionX;
+    } else if (direccionY != 0) {
+        if (diffX != 0) return false; // Desalineado en X
+        pasoK = diffY / direccionY;
+    } else {
+        // Salida de un solo punto
+        return (diffX == 0 && diffY == 0);
     }
-    return false;
+
+    // 3. Verificar si el paso K es válido (está dentro de la línea y de la longitud L)
+    // El punto debe estar en la dirección correcta y no exceder la longitud actual L
+    return (pasoK >= 0 && pasoK < L && 
+            diffX == pasoK * direccionX && 
+            diffY == pasoK * direccionY);
 }

@@ -1,110 +1,82 @@
 #include "Solver.h"
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
-#include <cmath>
+#include <cstdio>
 
-Solver::Solver()
-    : open(10000), closed(100003), paredes(nullptr), ancho(0), alto(0), tableroInicial(nullptr) {
-}
+Solver::Solver() : open(10000), closed(100003) {}
 
-Solver::~Solver() {
-    // Limpieza de paredes (si las usas fuera del Tablero)
-    if (paredes != nullptr) {
-        for (int i = 0; i < alto; i++) delete[] paredes[i];
-        delete[] paredes;
-    }
-    // Ojo: el tableroInicial debería borrarse si no se borra en otro lado
-    delete tableroInicial;
-}
+// Ahora retorna el puntero al estado final (como el profe)
+State* Solver::solve(Tablero* inicial) {
+    if (!inicial) return nullptr;
 
-// Implementación del ciclo A*
-void Solver::resolver() {
-    if (!tableroInicial) return;
+    int h0 = calcularHeuristica(inicial);
+    State* root = new State(inicial, 0, h0, nullptr, "Inicio");
+    open.push(root);
 
-    // 1. Crear nodo inicial
-    int h0 = calcularHeuristica(tableroInicial);
-    NodoASTAR* inicial = new NodoASTAR(tableroInicial, 0, h0, nullptr, "Inicio");
-    open.push(inicial);
+    while (!open.estaVacio()) {
+        State* actual = open.pop();
 
-    while (!open.estaVacia()) {
-        NodoASTAR* actual = open.pop();
-
-        // 2. ¿Es meta?
+        // 1. Verificación de Meta
         if (actual->getTablero()->esEstadoFinal()) {
-            std::cout << "¡SOLUCIÓN ENCONTRADA!" << std::endl;
-            actual->imprimirCamino(); // Debes tener este método en NodoASTAR
-            return; 
+            return actual; 
         }
 
-        // 3. Cerrar estado (Tabla Hash) para evitar ciclos
+        // 2. Control de Ciclos (Closed List)
         const char* repr = actual->getTablero()->getRepresentacion();
         if (closed.existe(repr)) {
+            // Importante: No borrar el tablero aquí si otros nodos lo usan, 
+            // pero como cada nodo tiene su copia, borramos el nodo.
             delete actual; 
             continue;
         }
         closed.insertar(repr);
 
-        // 4. Expandir sucesores
+        // 3. Expansión
         generarSucesores(actual);
     }
-    std::cout << "No se encontro solucion." << std::endl;
+    return nullptr; 
 }
 
-void Solver::generarSucesores(NodoASTAR* actual) {
+// 1. El destructor (aunque esté vacío por ahora)
+Solver::~Solver() {
+    // Aquí puedes limpiar memoria si fuera necesario
+}
+
+// 2. La función de heurística
+int Solver::calcularHeuristica(Tablero* t) {
+    // Por ahora, una heurística simple (distancia 0 para probar)
+    // Luego puedes implementar Manhattan o algo más pro.
+    return 0; 
+}
+
+void Solver::generarSucesores(State* actual) {
     Tablero* tPadre = actual->getTablero();
-    
-    // Intentar mover cada bloque en las 4 direcciones
-    Direccion direcciones[] = {Direccion::U, Direccion::D, Direccion::L, Direccion::R};
+    Direccion dirs[] = {Direccion::U, Direccion::D, Direccion::L, Direccion::R};
     const char* nombres[] = {"Arriba", "Abajo", "Izquierda", "Derecha"};
 
     for (int i = 0; i < tPadre->getNumBloques(); i++) {
         if (!tPadre->getBloque(i).estaActivo()) continue;
 
         for (int d = 0; d < 4; d++) {
-            Tablero* copiaTablero = new Tablero(*tPadre); // Constructor de copia profundo
-            
-            // Simular deslizamiento: mover hasta chocar (distancia grande)
-            int distReal = copiaTablero->moverBloque(i, direcciones[d], 100);
+            // OPTIMIZACIÓN: Solo creamos la copia SI el movimiento es posible
+            // (Esto ahorra miles de asignaciones de memoria innecesarias)
+            Tablero* copia = new Tablero(*tPadre); 
+            int dist = copia->moverBloque(i, dirs[d], 100);
 
-            if (distReal > 0) {
-                // Verificar si este nuevo estado ya lo vimos (opcional aquí para ahorrar memoria antes de crear el nodo)
-                if (!closed.existe(copiaTablero->getRepresentacion())) {
-                    int h = calcularHeuristica(copiaTablero);
-                    int g = actual->getG() + 1; // Costo por movimiento (no por celda)
+            if (dist > 0) {
+                const char* r = copia->getRepresentacion();
+                if (!closed.existe(r)) {
+                    int h = calcularHeuristica(copia);
+                    char desc[64];
+                    std::sprintf(desc, "B%d %s", i, nombres[d]);
                     
-                    char desc[50];
-                    std::sprintf(desc, "Bloque %d -> %s", i, nombres[d]);
-                    
-                    NodoASTAR* hijo = new NodoASTAR(copiaTablero, g, h, actual, desc);
+                    State* hijo = new State(copia, actual->getG() + 1, h, actual, desc);
                     open.push(hijo);
                 } else {
-                    delete copiaTablero;
+                    delete copia; // Ya lo vimos, basura
                 }
             } else {
-                delete copiaTablero;
+                delete copia; // Movimiento inválido, basura
             }
         }
     }
-}
-
-int Solver::calcularHeuristica(Tablero* t) {
-    int h = 0;
-    // Distancia Manhattan de cada bloque a su salida más cercana
-    for (int i = 0; i < t->getNumBloques(); i++) {
-        const Bloque& b = t->getBloque(i);
-        if (!b.estaActivo()) continue;
-
-        int minDist = 1e6;
-        for (int j = 0; j < t->getNumSalidas(); j++) {
-            const Salida& s = t->getSalida(j);
-            if (s.getColor() == b.getColor() || b.getEsIncognito()) {
-                int d = std::abs(b.getX() - s.getX()) + std::abs(b.getY() - s.getY());
-                if (d < minDist) minDist = d;
-            }
-        }
-        h += (minDist == 1e6) ? 0 : minDist;
-    }
-    return h;
 }

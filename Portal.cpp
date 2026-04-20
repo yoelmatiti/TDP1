@@ -32,6 +32,17 @@ Portal::~Portal() {
     delete[] cicloColores;
 }
 
+/**
+ * OPTIMIZACIÓN: Cálculo de color O(1)
+ * No usa bucles, solo aritmética modular para determinar el estado
+ * del portal en cualquier punto del tiempo (g).
+ */
+char Portal::getColorActual(int tiempoG) const {
+    if (numColores <= 0 || pasoCambio <= 0) return (numColores > 0) ? cicloColores[0] : ' ';
+    // Aritmética modular O(1)
+    return cicloColores[(tiempoG / pasoCambio) % numColores];
+}
+
 void Portal::agregarColorAlCiclo(char c) {
     // Redimensionar arreglo manual (estilo Vector)
     char* nuevoCiclo = new char[numColores + 1];
@@ -43,16 +54,15 @@ void Portal::agregarColorAlCiclo(char c) {
     numColores++;
 }
 
-char Portal::getColorActual(int tiempoG) const {
-    if (numColores == 0) return ' ';
-    if (pasoCambio <= 0) return cicloColores[0];
-
-    // Lógica: (Tiempo total / p) nos da el índice del ciclo
-    int indice = (tiempoG / pasoCambio) % numColores;
-    return cicloColores[indice];
+/**
+ * COMPATIBILIDAD: Para el dibujo inicial o consultas fuera del Solver.
+ */
+char Portal::getColor() const {
+    return getColorActual(0);
 }
 
 bool Portal::puedePasar(char colorBloque, int tiempoG) const {
-    // Un bloque solo pasa si su color coincide con el color del portal en ese instante
-    return colorBloque == getColorActual(tiempoG);
+    char colorPortal = getColorActual(tiempoG);
+    // Un bloque pasa si es del mismo color o si es un comodín '?'
+    return (colorBloque == colorPortal || colorBloque == '?');
 }

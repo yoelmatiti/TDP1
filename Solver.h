@@ -2,28 +2,30 @@
 #define SOLVER_H
 
 #include "Tablero.h"
-#include "ColaPrioridad.h"
+#include "State.h"
+#include "Heap.h"      // Tu Cola de Prioridad (o ColaPrioridad.h)
 #include "TablaHash.h"
-#include "NodoASTAR.h"
 
 class Solver {
 private:
-    // Estructuras de búsqueda
-    ColaPrioridad open;
-    TablaHash closed;
+    Heap open;            // Lista de estados por explorar (Frontera)
+    TablaHash closed;     // Lista de estados ya visitados (Historial)
     
-    // Datos del problema actual
-    Tablero* tableroInicial;
+    // Variables de configuración del tablero actual
     int ancho, alto;
-    char** paredes; // Si decides mantener las paredes aparte
+    char** paredes;
 
 public:
     Solver();
     ~Solver();
 
-    void cargarProblema(const char* archivo);
-    void resolver();
-    void generarSucesores(NodoASTAR* actual);
+    // Método principal: Retorna el State final o nullptr si falla
+    State* solve(Tablero* inicial);
+
+    // Genera los posibles movimientos desde un estado actual
+    void generarSucesores(State* actual);
+
+    // Calcula la distancia estimada a la meta (Heurística)
     int calcularHeuristica(Tablero* t);
 };
 

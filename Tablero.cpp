@@ -2,11 +2,13 @@
 #include <cstdio> // Para sprintf
 
 // Constructor por defecto inicializando punteros a null
-Tablero::Tablero() : width(0), height(0), matriz(nullptr), g(0), h(0), 
-                     bloques(nullptr), numBloques(0), bloquesRestantes(0), 
-                     salidas(nullptr), numSalidas(0), portales(nullptr), 
-                     numPortales(0), representacion(nullptr) {}
-
+Tablero::Tablero() 
+    : width(0), height(0), pasoActual(0), matriz(nullptr), representacion(nullptr),
+      bloques(nullptr), numBloques(0), bloquesRestantes(0), 
+      salidas(nullptr), numSalidas(0), 
+      portales(nullptr), numPortales(0) 
+{
+}
 // Destructor: Limpia la memoria dinámica [cite: 122]
 Tablero::~Tablero() {
     liberarMemoria();
@@ -44,8 +46,8 @@ Tablero& Tablero::operator=(const Tablero& otra) {
 void Tablero::copiarDesde(const Tablero& otra) {
     this->width = otra.width;
     this->height = otra.height;
-    this->g = otra.g;
-    this->h = otra.h;
+    this->pasoActual = otra.pasoActual;
+
     this->bloquesRestantes = otra.bloquesRestantes;
     this->numBloques = otra.numBloques;
     this->numSalidas = otra.numSalidas;
@@ -195,7 +197,7 @@ bool Tablero::esMovimientoValido(int bloqueID, Direccion dir, int celdas) const 
             for (int p = 0; p < numPortales; p++) {
                 if (portales[p].getX() == absX && portales[p].getY() == absY) {
                     hayPortal = true;
-                    if (!portales[p].puedePasar(bloque.getColor(), g)) return false;
+                    if (!portales[p].puedePasar(bloque.getColor(), pasoActual)) return false;
                     break;
                 }
             }
@@ -234,7 +236,7 @@ void Tablero::aplicarMovimiento(int bloqueID, Direccion dir, int distancia) {
     // ... tu switch de direcciones ...
     
     bloque.mover(dx * distancia, dy * distancia);
-    this->g += distancia; // El tiempo avanza con cada celda recorrida
+    this->pasoActual += distancia; // El tiempo avanza con cada celda recorrida
 
     // VERIFICAR SALIDA
     for (int s = 0; s < numSalidas; s++) {

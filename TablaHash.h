@@ -1,11 +1,8 @@
 #ifndef TABLAHASH_H
 #define TABLAHASH_H
 
-#include "Tablero.h"
-
-// Nodo para manejar colisiones en la tabla hash (Lista enlazada simple)
 struct NodoHash {
-    char* representacion; // El "string" o ID único del tablero
+    char* representacion; 
     NodoHash* siguiente;
 };
 
@@ -14,15 +11,15 @@ private:
     NodoHash** tabla;
     int capacidad;
     
-    // Convierte la representación del tablero en un índice del arreglo
-    unsigned int funcionHash(const char* rep);  // ← CAMBIO: ahora recibe const char*
+    // Función hash optimizada
+    unsigned int generarHash(const char* cadena) const;
 
 public:
-    TablaHash(int cap = 100003); // Usar números primos mejora la distribución
+    TablaHash(int cap = 100003); 
     ~TablaHash();
 
-    void insertar(const Tablero& t);
-    bool existe(const Tablero& t);
+    void insertar(const char* repr); 
+    bool existe(const char* repr) const;
 };
 
 #endif

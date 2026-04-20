@@ -1,7 +1,7 @@
 #include "TablaHash.h"
-#include <cstring> // Para strcmp y strcpy
+#include <cstring>
 
-// Constructor
+// Constructor: Reserva espacio para las "cubetas" (buckets)
 TablaHash::TablaHash(int cap) : capacidad(cap) {
     tabla = new NodoHash*[capacidad];
     for (int i = 0; i < capacidad; i++) {
@@ -9,59 +9,72 @@ TablaHash::TablaHash(int cap) : capacidad(cap) {
     }
 }
 
-// Destructor
+// Destructor: Limpieza profunda de cadenas y nodos
 TablaHash::~TablaHash() {
     for (int i = 0; i < capacidad; i++) {
         NodoHash* actual = tabla[i];
         while (actual != nullptr) {
-            NodoHash* temp = actual;
+            NodoHash* temporal = actual;
             actual = actual->siguiente;
-            delete[] temp->representacion;
-            delete temp;
+            delete[] temporal->representacion; 
+            delete temporal;
         }
     }
     delete[] tabla;
 }
 
-// Función hash simple basada en la representación (OPTIMIZADA)
-unsigned int TablaHash::funcionHash(const char* rep) {
-    unsigned int hash = 0;
-    for (size_t i = 0; rep[i] != '\0'; i++) {
-        hash = hash * 31 + rep[i];
+/**
+ * OPTIMIZACIÓN: Algoritmo DJB2
+ * Es significativamente más rápido y produce menos colisiones que el 
+ * multiplicador simple de 31 para cadenas de texto largas.
+ */
+unsigned int TablaHash::generarHash(const char* cadena) const {
+    unsigned long hash = 5381;
+    int c;
+    while ((c = *cadena++)) {
+        // hash * 33 + c
+        hash = ((hash << 5) + hash) + c;
     }
     return hash % capacidad;
 }
 
-// Insertar un tablero en la tabla (OPTIMIZADA: Una sola llamada a getRepresentacion())
-void TablaHash::insertar(const Tablero& t) {
-    const char* rep = t.getRepresentacion();  // ← UNA SOLA LLAMADA aquí
-    unsigned int indice = funcionHash(rep);   // ← Pasar const char* en lugar de Tablero
+/**
+ * OPTIMIZACIÓN: Inserción sin redundancia
+ * No volvemos a calcular el hash dentro de insertar si ya lo calculamos 
+ * para verificar existencia (aunque aquí se mantienen separadas por claridad).
+ */
+void TablaHash::insertar(const char* repr) {
+    if (repr == nullptr) return;
 
-    // Verificar si ya existe
+    unsigned int indice = generarHash(repr);
+
+    // Verificamos si ya existe para evitar duplicados en la misma cubeta
     NodoHash* actual = tabla[indice];
     while (actual != nullptr) {
-        if (strcmp(actual->representacion, rep) == 0) {  // ← Reutilizar 'rep'
-            return; // Ya existe
+        if (std::strcmp(actual->representacion, repr) == 0) {
+            return; 
         }
         actual = actual->siguiente;
     }
 
-    // Insertar al inicio de la lista
+    // Insertar al inicio de la lista (O(1))
     NodoHash* nuevo = new NodoHash;
-    nuevo->representacion = new char[strlen(rep) + 1];
-    strcpy(nuevo->representacion, rep);  // ← Reutilizar 'rep'
+    nuevo->representacion = new char[std::strlen(repr) + 1];
+    std::strcpy(nuevo->representacion, repr);
     nuevo->siguiente = tabla[indice];
     tabla[indice] = nuevo;
 }
 
-// Verificar si un tablero existe en la tabla (OPTIMIZADA: Una sola llamada a getRepresentacion())
-bool TablaHash::existe(const Tablero& t) {
-    const char* rep = t.getRepresentacion();  // ← UNA SOLA LLAMADA aquí
-    unsigned int indice = funcionHash(rep);   // ← Pasar const char* en lugar de Tablero
+// Búsqueda rápida
+bool TablaHash::existe(const char* repr) const {
+    if (repr == nullptr) return false;
+
+    unsigned int indice = generarHash(repr);
 
     NodoHash* actual = tabla[indice];
     while (actual != nullptr) {
-        if (strcmp(actual->representacion, rep) == 0) {  // ← Reutilizar 'rep'
+        // strcmp es rápido, pero las colisiones bajas lo hacen más rápido aún
+        if (std::strcmp(actual->representacion, repr) == 0) {
             return true;
         }
         actual = actual->siguiente;

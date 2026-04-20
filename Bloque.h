@@ -7,11 +7,9 @@ private:
     char caracterActual;
     char colorOculto;
     int x, y;
-    int anchoGeo;
-    int altoGeo;
-    bool** geometria;
-    bool esIncognito;
-    bool activo;
+    int anchoGeo, altoGeo;
+    bool* geometria; // Arreglo 1D
+    bool esIncognito, activo;
 
 public:
     Bloque();
@@ -20,26 +18,22 @@ public:
     Bloque& operator=(const Bloque& otro);
     ~Bloque();
 
+    // Métodos de lógica
+    void setActivo(bool estado) { activo = estado; }
     void setGeometria(int fila, int col, bool ocupa);
-    bool ocupaCelda(int filaAbs, int colAbs) const;
+    bool ocupaCelda(int fTablero, int cTablero) const;
     void mover(int dx, int dy);
-    
-    // Getters
-    bool estaActivo() const { return activo; }
-    bool getEsIncognito() const { return esIncognito; }
+    void revelarColor();
+
+    // GETTERS PÚBLICOS (Para corregir errores de Tablero.cpp)
     int getX() const { return x; }
     int getY() const { return y; }
-    char getColor() const { return caracterActual; }
-    int getAltoGeo() const { return altoGeo; }
     int getAnchoGeo() const { return anchoGeo; }
+    int getAltoGeo() const { return altoGeo; }
+    bool getEsIncognito() const { return esIncognito; }
+    bool estaActivo() const { return activo; }
+    char getColor() const { return caracterActual; }
     bool getGeometria(int fila, int col) const;
-   
-    // Setters
-    void setColorReal(char c) { colorOculto = c; }
-    void setActivo(bool estado) { activo = estado; }
-
-    // SOLO LA DECLARACIÓN AQUÍ
-    void revelarColor(); 
 };
 
 #endif
