@@ -14,23 +14,25 @@ private:
     int width;              // Ancho W
     int height;             // Alto H
     int pasoActual;         // Turno actual del juego
+    int bloquesRestantes;   // Contador para esEstadoFinal() O(1)
 
-    // 2. Representación y Memoria
-    char** matriz;          // Matriz de caracteres (colisiones/visual)
-    mutable char* representacion; // Buffer para Tabla Hash
+    // 2. Representación y Memoria Eficaz
+    char* matrizContigua;         // Un solo bloque de memoria (eficacia de caché)
+    char** matriz;                // Indexación matriz[y][x]
+    mutable char* representacion; // Buffer para Tabla Hash / ClosedSet
 
-    // 3. Objetos del Juego (Gestión manual de memoria)
-    Bloque* bloques;
+    // 3. Objetos del Juego (Gestión mediante punteros para evitar copias pesadas)
+    Bloque** bloques;       // Arreglo de punteros a Bloques
     int numBloques;
-    int bloquesRestantes;
+    int capacidadBloques;   // Para control del arreglo dinámico
 
-    Salida* salidas;
+    Salida** salidas;       // Arreglo de punteros a Salidas
     int numSalidas;
 
-    Portal* portales;
+    Portal** portales;      // Arreglo de punteros a Portales
     int numPortales;
 
-    // Métodos privados auxiliares
+    // 4. Métodos Privados Auxiliares
     void liberarMemoria();
     void copiarDesde(const Tablero& otra);
     void generarRepresentacion() const;
@@ -43,43 +45,38 @@ private:
 public:
     // Constructores y Destructor (Regla de los tres)
     Tablero();
-    Tablero(int w, int h);
     Tablero(const Tablero& otra);
     Tablero& operator=(const Tablero& otra);
     ~Tablero();
 
-    // Lógica Principal
+    // --- Lógica Principal (Algoritmo A*) ---
     int moverBloque(int id, Direccion dir, int celdas);
     void actualizarAmbiente();
-    bool esEstadoFinal() const;
+    bool esEstadoFinal() const { return bloquesRestantes == 0; }
+    
+    // --- Métodos para el Parser (Carga Eficiente) ---
+    void setDimensiones(int w, int h);
+    void agregarBloque(Bloque* b);
+    void agregarSalida(Salida* s);
+    void agregarPortal(Portal* p);
+    void setPared(int fila, int col, char valor);
 
-    // Getters de Dimensiones y Estado
-    int getWidth() const { return width; }
-    int getHeight() const { return height; }
+    // --- Getters Const (Acceso rápido para Heurística/Solver) ---
+    int getWidth() const      { return width; }
+    int getHeight() const     { return height; }
     int getPasoActual() const { return pasoActual; }
-    char** getMatriz() const { return matriz; }
-
-    // Getters de Objetos (Individuales para el Solver/Heurística)
+    char** getMatriz() const  { return matriz; }
+    
     int getNumBloques() const { return numBloques; }
-    const Bloque& getBloque(int i) const { return bloques[i]; }
+    Bloque* getBloque(int i)  { return bloques[i]; } // Retorna puntero al bloque i
 
-    int getNumSalidas() const { return numSalidas; }
-    const Salida& getSalida(int i) const { return salidas[i]; }
+    int getNumSalidas() const  { return numSalidas; }
+    Salida* getSalida(int i)   { return salidas[i]; }
 
     int getNumPortales() const { return numPortales; }
-    
-    // Getters de Arreglos Completos
-    Bloque* getBloques() const { return bloques; }
-    Salida* getSalidas() const { return salidas; }
-    Portal* getPortales() const { return portales; }
+    Portal* getPortal(int i)   { return portales[i]; }
 
-    // Setters e Inicialización (Parser)
-    void setDimensiones(int w, int h);
-    void agregarBloque(Bloque* bloque);
-    void agregarSalida(Salida* salida);
-    void agregarPortal(Portal* portal);
-
-    // Salida y Persistencia
+    // --- Salida y Persistencia ---
     const char* getRepresentacion() const;
     void imprimirTablero() const;
 };
