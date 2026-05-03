@@ -1,51 +1,57 @@
 #include "Bloque.h"
-#include <iostream>
 
 // Constructor por defecto
 Bloque::Bloque() 
-    : id(-1), caracterActual(' '), colorOculto(' '), x(0), y(0), anchoGeo(0), altoGeo(0), 
-      geometria(nullptr), esIncognito(false), activo(false) {}
+    : id(-1), caracterActual(' '), x(0), y(0), anchoGeo(0), altoGeo(0), 
+      geometria(nullptr), activo(false), esIncognito(false), colorOculto(' ') {}
 
-// Constructor parametrizado (Optimizado a 1D)
-Bloque::Bloque(int _id, char _c, int _x, int _y, int _wG, int _hG) 
-    : id(_id), caracterActual(_c), x(_x), y(_y), anchoGeo(_wG), altoGeo(_hG) {
+// Constructor de 7 parámetros (Sincronización Crítica de ID)
+Bloque::Bloque(int id, char _color, int _x, int _y, int _w, int _h, bool* _geo)
+    : id(id), caracterActual(_color), x(_x), y(_y), anchoGeo(_w), altoGeo(_h), activo(true) {
     
-    // Un solo NEW: más rápido y menos fragmentación
-    geometria = new bool[anchoGeo * altoGeo]; 
-    for (int i = 0; i < anchoGeo * altoGeo; i++) geometria[i] = false;
+    // 1. Asignación inmediata y explícita
+    this->id = id; 
     
-    activo = true;
-    esIncognito = false;
+    // 2. Inicialización de estado
+    this->esIncognito = false;
+    this->colorOculto = _color;
+
+    // 3. Gestión de memoria de la geometría
+    int tam = anchoGeo * altoGeo;
+    this->geometria = new bool[tam]; 
+    
+    if (_geo != nullptr) {
+        for (int i = 0; i < tam; ++i) {
+            this->geometria[i] = _geo[i]; 
+        }
+    }
 }
 
-// Constructor de Copia
-Bloque::Bloque(const Bloque& otro) {
-    geometria = nullptr; 
-    *this = otro; // Llama al operador de asignación corregido
+// Getter crítico para la identificación en el Tablero
+int Bloque::getId() const {
+    return this->id;
 }
 
-// Operador de Asignación (Copia Profunda Optimizada)
+// Operador de Asignación (Actualizado para incluir estados de incógnito)
 Bloque& Bloque::operator=(const Bloque& otro) {
     if (this != &otro) {
-        // 1. Liberar memoria vieja (ahora es un delete simple)
-        delete[] geometria;
+        delete[] geometria; 
 
-        // 2. Copiar datos simples
         this->id = otro.id;
         this->caracterActual = otro.caracterActual;
-        this->colorOculto = otro.colorOculto;
         this->x = otro.x;
         this->y = otro.y;
         this->anchoGeo = otro.anchoGeo;
         this->altoGeo = otro.altoGeo;
-        this->esIncognito = otro.esIncognito;
         this->activo = otro.activo;
+        this->esIncognito = otro.esIncognito;
+        this->colorOculto = otro.colorOculto;
 
-        // 3. Copiar geometría 1D
         if (otro.geometria != nullptr) {
-            this->geometria = new bool[anchoGeo * altoGeo];
-            for (int i = 0; i < anchoGeo * altoGeo; i++) {
-                this->geometria[i] = otro.geometria[i];
+            int tam = anchoGeo * altoGeo;
+            geometria = new bool[tam];
+            for (int i = 0; i < tam; i++) {
+                geometria[i] = otro.geometria[i];
             }
         } else {
             geometria = nullptr;
@@ -53,19 +59,19 @@ Bloque& Bloque::operator=(const Bloque& otro) {
     }
     return *this;
 }
+// Constructor de Copia (Vital para que A* no corrompa estados anteriores)
+Bloque::Bloque(const Bloque& otro) : geometria(nullptr) {
+    *this = otro;
+}
 
-// Destructor
+
+
+// Destructor para cumplir con la eficiencia de memoria
 Bloque::~Bloque() {
-    delete[] geometria; 
+    delete[] geometria;
 }
 
-// Acceso con mapeo de 2D a 1D: fila * ancho + columna
-void Bloque::setGeometria(int fila, int col, bool ocupa) {
-    if (geometria != nullptr && fila >= 0 && fila < altoGeo && col >= 0 && col < anchoGeo) {
-        geometria[fila * anchoGeo + col] = ocupa;
-    }
-}
-
+// Mapeo de 2D a 1D: fila * ancho + columna (Eficiencia O(1)) 
 bool Bloque::getGeometria(int fila, int col) const {
     if (geometria != nullptr && fila >= 0 && fila < altoGeo && col >= 0 && col < anchoGeo) {
         return geometria[fila * anchoGeo + col];
@@ -73,28 +79,39 @@ bool Bloque::getGeometria(int fila, int col) const {
     return false;
 }
 
-bool Bloque::ocupaCelda(int fTablero, int cTablero) const {
-    if (!activo) return false; 
+// Determina si el bloque está presente en una celda específica del tablero
+bool Bloque::ocupaCelda(int tx, int ty) const {
+    // 1. Calcular coordenadas relativas al origen del bloque
+    int relX = tx - this->x;
+    int relY = ty - this->y;
 
-    int fRel = fTablero - y;
-    int cRel = cTablero - x;
-    
-    if (fRel >= 0 && fRel < altoGeo && cRel >= 0 && cRel < anchoGeo) {
-        return (geometria != nullptr && geometria[fRel * anchoGeo + cRel]);
+    // 2. Verificar si está dentro de la caja (bounding box) del bloque
+    if (relX >= 0 && relX < anchoGeo && relY >= 0 && relY < altoGeo) {
+        // 3. Acceso a matriz plana: (fila * ancho) + columna
+        // Esto corrige el error de "invalid types"
+        return geometria[relY * anchoGeo + relX];
     }
+    
     return false;
 }
 
 void Bloque::mover(int dx, int dy) {
-    if (activo) { 
+    if (activo) {
         x += dx;
         y += dy;
     }
 }
-
+char Bloque::getColorVisual() const {
+    return esIncognito ? '?' : colorOculto;
+}
 void Bloque::revelarColor() {
-    if (esIncognito) {
-        caracterActual = colorOculto;
-        esIncognito = false;
+    if (this->esIncognito) {
+        this->esIncognito = false;
+        this->caracterActual = this->colorOculto;
+    }
+}
+void Bloque::setGeometria(int fila, int col, bool ocupa) {
+    if (geometria != nullptr) {
+        geometria[fila * anchoGeo + col] = ocupa;
     }
 }

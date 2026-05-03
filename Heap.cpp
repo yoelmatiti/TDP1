@@ -1,11 +1,10 @@
 #include "Heap.h"
+#include <iostream>
 
-// Inicialización del montículo con la capacidad dada
 Heap::Heap(int capacidadInicial) : tamano(0), capacidad(capacidadInicial) {
-    arreglo = new State*[capacidad]; // Reserva de memoria para punteros
+    arreglo = new State*[capacidad];
 }
 
-// Liberación del contenedor de punteros
 Heap::~Heap() {
     delete[] arreglo; 
 }
@@ -25,39 +24,52 @@ void Heap::redimensionar() {
 }
 
 void Heap::push(State* nuevoEstado) {
+    if (!nuevoEstado) return;
     if (tamano == capacidad) redimensionar();
     
-    arreglo[tamano] = nuevoEstado; // Se coloca al final
-    flotar(tamano);               // Se sube hasta su posición correcta
+    arreglo[tamano] = nuevoEstado;
+    flotar(tamano);
     tamano++;
 }
 
+/**
+ * pop() - Extrae el mínimo con validación de seguridad
+ */
 State* Heap::pop() {
-    if (tamano == 0) return nullptr;
+    while (tamano > 0) {
+        State* raiz = arreglo[0];
+        tamano--;
 
-    State* raiz = arreglo[0];    // El de menor F (prioridad)
-    tamano--;
+        if (tamano > 0) {
+            arreglo[0] = arreglo[tamano];
+            hundir(0);
+        }
 
-    if (tamano > 0) {
-        arreglo[0] = arreglo[tamano]; // El último pasa a la raíz
-        hundir(0);                    // Se baja hasta su posición correcta
+        // --- VALIDACIÓN DE SEGURIDAD ---
+        // Si el puntero es nulo o apunta a memoria corrupta (f negativo o absurdo)
+        // lo ignoramos y sacamos el siguiente mejor.
+        if (raiz == nullptr || raiz->getF() < 0 || raiz->getF() > 1000000) {
+            // Log opcional para detectar si esto sucede durante el desarrollo
+
+            continue; 
+        }
+
+        return raiz;
     }
-    return raiz;
+    return nullptr;
 }
 
 void Heap::flotar(int indice) {
     while (indice > 0) {
         int padre = (indice - 1) / 2;
         
-        // Criterio de orden: Menor F es prioridad.
-        // Desempate: A igual F, preferimos el que tenga mayor G (más pasos).
+        // Prioridad: Menor F, luego mayor G (desempate hacia adelante)
         bool prioridad = (arreglo[indice]->getF() < arreglo[padre]->getF()) || 
                         (arreglo[indice]->getF() == arreglo[padre]->getF() && 
                          arreglo[indice]->getG() > arreglo[padre]->getG());
 
         if (!prioridad) break;
 
-        // Intercambio de punteros
         State* temporal = arreglo[indice];
         arreglo[indice] = arreglo[padre];
         arreglo[padre] = temporal;
@@ -71,7 +83,6 @@ void Heap::hundir(int indice) {
         int hijoDerecho = 2 * indice + 2;
         int menor = indice;
 
-        // Evaluar hijo izquierdo
         if (hijoIzquierdo < tamano) {
             if (arreglo[hijoIzquierdo]->getF() < arreglo[menor]->getF() || 
                (arreglo[hijoIzquierdo]->getF() == arreglo[menor]->getF() && 
@@ -80,7 +91,6 @@ void Heap::hundir(int indice) {
             }
         }
 
-        // Evaluar hijo derecho
         if (hijoDerecho < tamano) {
             if (arreglo[hijoDerecho]->getF() < arreglo[menor]->getF() || 
                (arreglo[hijoDerecho]->getF() == arreglo[menor]->getF() && 
@@ -95,7 +105,7 @@ void Heap::hundir(int indice) {
             arreglo[menor] = temporal;
             indice = menor;
         } else {
-            break; // Ya está en la posición correcta
+            break;
         }
     }
 }

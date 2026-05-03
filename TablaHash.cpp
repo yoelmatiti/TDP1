@@ -1,7 +1,6 @@
 #include "TablaHash.h"
-#include <cstring>
+#include "State.h"
 
-// Constructor: Reserva espacio para las "cubetas" (buckets)
 TablaHash::TablaHash(int cap) : capacidad(cap) {
     tabla = new NodoHash*[capacidad];
     for (int i = 0; i < capacidad; i++) {
@@ -9,73 +8,76 @@ TablaHash::TablaHash(int cap) : capacidad(cap) {
     }
 }
 
-// Destructor: Limpieza profunda de cadenas y nodos
+/**
+ * Destructor: Responsable de la limpieza total de la memoria del Solver.
+ * Recorre cada cubeta y elimina tanto el envoltorio (NodoHash) como el 
+ * dato pesado (State).
+ */
 TablaHash::~TablaHash() {
     for (int i = 0; i < capacidad; i++) {
         NodoHash* actual = tabla[i];
         while (actual != nullptr) {
             NodoHash* temporal = actual;
             actual = actual->siguiente;
-            delete[] temporal->representacion; 
+
+            // 1. Liberamos el objeto State almacenado.
+            // Gracias a que en State::~State() NO borramos al padre, 
+            // no habrá recursión infinita ni Double Free aquí.
+            if (temporal->estado) {
+                delete temporal->estado;
+                temporal->estado = nullptr;
+            }
+
+            // 2. Liberamos el nodo de la lista ligada.
             delete temporal;
         }
     }
+    // 3. Liberamos el arreglo de punteros principal.
     delete[] tabla;
 }
 
 /**
- * OPTIMIZACIÓN: Algoritmo DJB2
- * Es significativamente más rápido y produce menos colisiones que el 
- * multiplicador simple de 31 para cadenas de texto largas.
+ * Genera el índice de la cubeta usando el hash del estado.
+ * Aplicamos una máscara de bits para asegurar que el índice sea positivo.
  */
-unsigned int TablaHash::generarHash(const char* cadena) const {
-    unsigned long hash = 5381;
-    int c;
-    while ((c = *cadena++)) {
-        // hash * 33 + c
-        hash = ((hash << 5) + hash) + c;
-    }
-    return hash % capacidad;
+unsigned int TablaHash::obtenerIndice(long long hashEstado) const {
+    return (unsigned int)(hashEstado & 0x7FFFFFFF) % capacidad;
 }
 
 /**
- * OPTIMIZACIÓN: Inserción sin redundancia
- * No volvemos a calcular el hash dentro de insertar si ya lo calculamos 
- * para verificar existencia (aunque aquí se mantienen separadas por claridad).
+ * Inserción de estados únicos.
  */
-void TablaHash::insertar(const char* repr) {
-    if (repr == nullptr) return;
-
-    unsigned int indice = generarHash(repr);
-
-    // Verificamos si ya existe para evitar duplicados en la misma cubeta
-    NodoHash* actual = tabla[indice];
-    while (actual != nullptr) {
-        if (std::strcmp(actual->representacion, repr) == 0) {
-            return; 
-        }
-        actual = actual->siguiente;
+void TablaHash::insertar(State* s) {
+    if (!s || existe(s)) {
+        delete s; // Evitamos fugas de memoria si el estado ya existe o es nulo
+        return;
     }
 
-    // Insertar al inicio de la lista (O(1))
-    NodoHash* nuevo = new NodoHash;
-    nuevo->representacion = new char[std::strlen(repr) + 1];
-    std::strcpy(nuevo->representacion, repr);
+    unsigned int indice = obtenerIndice(s->getHash());
+
+    // Insertamos al inicio de la cubeta (O(1))
+    NodoHash* nuevo = new NodoHash(s);
     nuevo->siguiente = tabla[indice];
     tabla[indice] = nuevo;
 }
 
-// Búsqueda rápida
-bool TablaHash::existe(const char* repr) const {
-    if (repr == nullptr) return false;
+/**
+ * Búsqueda optimizada:
+ * Compara por Hash (rápido) y luego por contenido (seguro).
+ */
+bool TablaHash::existe(State* s) const {
+    if (!s) return false;
 
-    unsigned int indice = generarHash(repr);
-
+    unsigned int indice = obtenerIndice(s->getHash());
     NodoHash* actual = tabla[indice];
+
     while (actual != nullptr) {
-        // strcmp es rápido, pero las colisiones bajas lo hacen más rápido aún
-        if (std::strcmp(actual->representacion, repr) == 0) {
-            return true;
+        // Primero comparamos el hash numérico
+        if (actual->estado->getHash() == s->getHash()) {
+            // Si el hash coincide, usamos el operator== (Deep Comparison)
+            if (*(actual->estado) == *s) {
+                return true;
+            }
         }
         actual = actual->siguiente;
     }

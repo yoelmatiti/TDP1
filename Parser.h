@@ -1,17 +1,18 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <fstream>
 #include "Tablero.h"
-#include <fstream> // IMPORTANTE: Debe estar aquí para reconocer std::ifstream
 
 class Parser {
 public:
+    // Firma que espera tu test_Tablero.cpp
     static Tablero* cargarEscenario(const char* rutaArchivo);
 
 private:
-    // Asegúrate de usar std::ifstream& (referencia)
-    static void leerBloques(std::ifstream& archivo, Tablero* t);
     static void leerParedes(std::ifstream& archivo, Tablero* t);
+    static void leerBloques(std::ifstream& archivo, Tablero* t);
+    static bool compararEtiqueta(const char* linea, const char* etiqueta);
     static void leerSalidas(std::ifstream& archivo, Tablero* t);
 };
 

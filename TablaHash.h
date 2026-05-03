@@ -1,9 +1,19 @@
 #ifndef TABLAHASH_H
 #define TABLAHASH_H
 
+// Forward declaration para no incluir State.h aquí
+class State;
+
+/**
+ * Nodo para el encadenamiento de la Tabla Hash (Closed List).
+ * Ahora guarda un puntero al estado ligero en lugar de un string pesado.
+ */
 struct NodoHash {
-    char* representacion; 
+    State* estado;
     NodoHash* siguiente;
+
+    // Constructor directo
+    NodoHash(State* s) : estado(s), siguiente(nullptr) {}
 };
 
 class TablaHash {
@@ -11,15 +21,31 @@ private:
     NodoHash** tabla;
     int capacidad;
     
-    // Función hash optimizada
-    unsigned int generarHash(const char* cadena) const;
+    /**
+     * Calcula el índice de la tabla a partir del hash numérico del estado.
+     * Usa una máscara de bits para asegurar que el índice sea positivo.
+     */
+    unsigned int obtenerIndice(long long hashEstado) const;
 
 public:
-    TablaHash(int cap = 100003); 
+    /**
+     * Constructor: Se recomienda un número primo para la capacidad.
+     * Ejemplo: 100003, 200003, 500009.
+     */
+    TablaHash(int cap = 200003); 
     ~TablaHash();
 
-    void insertar(const char* repr); 
-    bool existe(const char* repr) const;
+    /**
+     * Inserta un puntero al estado en la tabla. 
+     * Nota: La TablaHash no debe borrar el objeto State, eso lo hace el Solver.
+     */
+    void insertar(State* s); 
+
+    /**
+     * Verifica si un estado (por su contenido de posiciones) ya fue visitado.
+     * Compara el hash numérico y luego usa el operator== para confirmar.
+     */
+    bool existe(State* s) const;
 };
 
 #endif

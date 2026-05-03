@@ -5,80 +5,97 @@
 #include "Salida.h"
 #include "Portal.h"
 
-// Direcciones de movimiento
-enum class Direccion { U, D, L, R };
+/**
+ * DECLARACIÓN DE AVANCE (Forward Declaration)
+ */
+class State; 
+
+/**
+ * Direcciones de movimiento para los bloques.
+ */
+enum class Direccion { U, D, L, R }; 
 
 class Tablero {
 private:
-    // 1. Dimensiones y Estado Básico
-    int width;              // Ancho W
-    int height;             // Alto H
-    int pasoActual;         // Turno actual del juego
-    int bloquesRestantes;   // Contador para esEstadoFinal() O(1)
+    int width, height;
+    int pasoActual;
+    int bloquesRestantes;
 
-    // 2. Representación y Memoria Eficaz
-    char* matrizContigua;         // Un solo bloque de memoria (eficacia de caché)
-    char** matriz;                // Indexación matriz[y][x]
-    mutable char* representacion; // Buffer para Tabla Hash / ClosedSet
+    // Mapa base: Solo contiene muros '#' y espacios vacíos.
+    char* matrizContigua;
+    char** matriz; 
 
-    // 3. Objetos del Juego (Gestión mediante punteros para evitar copias pesadas)
-    Bloque** bloques;       // Arreglo de punteros a Bloques
+    Bloque** bloques;
     int numBloques;
-    int capacidadBloques;   // Para control del arreglo dinámico
+    int capacidadBloques;
 
-    Salida** salidas;       // Arreglo de punteros a Salidas
+    Salida** salidas;
     int numSalidas;
+    int capacidadSalidas;
 
-    Portal** portales;      // Arreglo de punteros a Portales
+    Portal** portales;
     int numPortales;
+    int capacidadPortales;
 
-    // 4. Métodos Privados Auxiliares
     void liberarMemoria();
     void copiarDesde(const Tablero& otra);
-    void generarRepresentacion() const;
-    bool esMovimientoValido(int bloqueID, Direccion dir, int celdas) const;
-    void verificarRevelacionIncognitos();
-    void aplicarMovimiento(int bloqueID, Direccion dir, int distancia);
-    void actualizarCompuertas();
-    void actualizarSalidas();
 
 public:
-    // Constructores y Destructor (Regla de los tres)
     Tablero();
     Tablero(const Tablero& otra);
     Tablero& operator=(const Tablero& otra);
     ~Tablero();
 
-    // --- Lógica Principal (Algoritmo A*) ---
-    int moverBloque(int id, Direccion dir, int celdas);
-    void actualizarAmbiente();
-    bool esEstadoFinal() const { return bloquesRestantes == 0; }
-    
-    // --- Métodos para el Parser (Carga Eficiente) ---
+    // --- Métodos de Estado y Lógica ---
+    void actualizarDesdeEstado(State* s); // Sincroniza y estampa bloques para renderizar
+
+    // --- Métodos de Configuración (Carga del Nivel) ---
     void setDimensiones(int w, int h);
+    void setPared(int fila, int col, char valor);
     void agregarBloque(Bloque* b);
     void agregarSalida(Salida* s);
     void agregarPortal(Portal* p);
-    void setPared(int fila, int col, char valor);
 
-    // --- Getters Const (Acceso rápido para Heurística/Solver) ---
-    int getWidth() const      { return width; }
-    int getHeight() const     { return height; }
-    int getPasoActual() const { return pasoActual; }
-    char** getMatriz() const  { return matriz; }
+    // --- API de Consulta Estática (Para Clase Movimiento) ---
+    /**
+     * Retorna el contenido del mapa base en (x, y). Útil para muros.
+     */
+    char getCeldaEstatica(int x, int y) const;
     
-    int getNumBloques() const { return numBloques; }
-    Bloque* getBloque(int i)  { return bloques[i]; } // Retorna puntero al bloque i
+    /**
+     * Retorna puntero a salida en (x, y) si existe, nullptr si no.
+     */
+    Salida* getSalidaEn(int x, int y) const;
+    
+    /**
+     * Retorna puntero a portal en (x, y) si existe, nullptr si no.
+     */
+    Portal* getPortalEn(int x, int y) const;
+    bool esPortal(int y, int x) const;
 
-    int getNumSalidas() const  { return numSalidas; }
-    Salida* getSalida(int i)   { return salidas[i]; }
+    /**
+     * Verifica si una coordenada está dentro de los límites del arreglo.
+     */
+    bool enLimites(int x, int y) const;
 
-    int getNumPortales() const { return numPortales; }
-    Portal* getPortal(int i)   { return portales[i]; }
+    /**
+     * Compara el bloque (id) con la salida en (x, y) para verificar meta.
+     */
+    bool comprobarMeta(int id, int x, int y) const;
 
-    // --- Salida y Persistencia ---
-    const char* getRepresentacion() const;
-    void imprimirTablero() const;
+    // --- Getters ---
+    inline int getWidth() const       { return width; }
+    inline int getHeight() const      { return height; }
+    inline int getNumBloques() const  { return numBloques; }
+    inline int getNumSalidas() const  { return numSalidas; }
+    inline int getNumPortales() const { return numPortales; }
+    
+    Bloque* getBloquePtr(int i) const;
+    Salida* getSalidaPtr(int i) const;
+    Portal* getPortalPtr(int i) const;
+
+    // --- Visualización ---
+    void imprimir();
 };
 
 #endif
