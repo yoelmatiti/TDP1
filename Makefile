@@ -19,7 +19,7 @@ all: $(OBJS) $(TEST_EXES)
 # ============================================================
 .PHONY: test_state test_heap test_bloque test_tablero \
         test_parser test_hash test_portal test_mov \
-        test_solver run_game all_tests
+        test_salida test_solver run_game all_tests
 
 # ============================================================
 # REGLAS DE EJECUCIÓN (LOS ALIAS)
@@ -61,6 +61,10 @@ test_solver: tests/test_solver_exe
 	@echo Ejecutando test de Solver...
 	./tests/test_solver_exe
 
+test_salida: tests/test_salida_exe
+	@echo Ejecutando test de Salida...
+	./tests/test_salida_exe
+
 run_game: cbj_game
 	@echo Iniciando el juego...
 	./cbj_game.exe
@@ -101,6 +105,9 @@ tests/test_mov_exe: tests/test_Movimiento.cpp Movimiento.o State.o Tablero.o Blo
 
 tests/test_solver_exe: tests/test_Solver.cpp $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
+tests/test_salida_exe: tests/test_Salida.cpp Salida.o
+	$(CC) $(CFLAGS) $^ -o $@
+	
 
 # --- COMPILACIÓN SEPARADA (.o)  ---
 

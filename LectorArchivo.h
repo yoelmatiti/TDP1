@@ -9,7 +9,7 @@ class LectorArchivo {
 public:
     // Lee el archivo y devuelve un Tablero configurado.
     // El llamador es responsable de liberar la memoria del Tablero.
-    static Tablero* cargarNivel(const std::string& ruta);
+    Tablero* cargarNivel(const char* ruta);
 };
 
 #endif

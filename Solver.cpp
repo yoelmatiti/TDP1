@@ -1,41 +1,38 @@
 #include "Solver.h"
 #include "Movimiento.h"
-#include <iostream>
-#include <cstdio>
-#include <cmath>
+#include <cstdio>   // Para printf
+#include <cctype>   // Para tolower
 
-// Eliminamos #include <vector> y <algorithm>
-
+// Constructor vacío
 Solver::Solver() : open(100000), closed(500003), tableroMaestro(nullptr), estadoFinal(nullptr) {}
 
+// Constructor con tablero (Recomendado)
 Solver::Solver(Tablero* t) : open(100000), closed(500003), tableroMaestro(t), estadoFinal(nullptr) {}
 
-Solver::~Solver() {}
+Solver::~Solver() {
+    // IMPORTANTE: El destructor de Solver o de la TablaHash (closed) 
+    // debe liberar todos los punteros State generados.
+}
 
 /**
- * resolver(Tablero* t) - Implementación con A* * Ahora recibe el tablero desde el menú (main)
+ * resolver() - Ahora utiliza el tablero guardado en el constructor.
  */
-bool Solver::resolver(Tablero* t) {
-    // 1. Validar y asignar el tablero maestro
-    if (!t) {
-        std::cerr << "[ERROR] Puntero a tablero nulo." << std::endl;
+bool Solver::resolver() {
+    // 1. Validar tablero maestro
+    if (this->tableroMaestro == nullptr) {
+        printf("[ERROR] No hay tablero cargado para resolver.\n");
         return false;
     }
-    this->tableroMaestro = t; // Guardamos la referencia para expandirEstado y heurística
-
-    // Limpiar estructuras por si se llama más de una vez (Opcional pero recomendado)
-    // open.limpiar(); 
-    // closed.limpiar();
 
     int estadosProcesados = 0;
     int nB = tableroMaestro->getNumBloques();
 
-    // 2. Capturar posiciones iniciales desde el tablero que acabamos de recibir
+    // 2. Capturar estado inicial
     PosBloque* posIniciales = capturarPosicionesActuales(); 
     
     // Crear estado raíz (g=0, h=calculada)
-    State* root = new State(nB, posIniciales, 0, 0, nullptr, "Inicio");
-    delete[] posIniciales; 
+    State* root = new State(nB, posIniciales, 0, 0, nullptr, (char*)"Inicio");
+    delete[] posIniciales; // Liberamos el temporal usado por el constructor de State
 
     root->setH(calcularHeuristica(root));
     
@@ -47,126 +44,30 @@ bool Solver::resolver(Tablero* t) {
         State* actual = open.pop();
         if (!actual) continue;
 
-        // 4. Condición de Victoria
+        // 4. Condición de Victoria: ¿Todos los bloques están inactivos/salieron?
         if (esEstadoFinal(actual)) {
-            std::cout << "\n[¡ÉXITO!] Meta alcanzada. Estados explorados: " << estadosProcesados << std::endl;
+            printf("\n[SUCCESS] Meta alcanzada. Estados explorados: %d\n", estadosProcesados);
             this->estadoFinal = actual;
             
-            // Sincronizamos el tablero maestro con la foto final para mostrarlo
+            // Sincronizamos el tablero para la vista final
             tableroMaestro->actualizarDesdeEstado(actual);
-            
-            // Método para mostrar el camino de vuelta (opcional)
-            // imprimirCamino(actual); 
-            
             return true;
         }
         
         estadosProcesados++;
         
-        // 5. Expansión: Aquí es donde State y Tablero interactúan
+        // 5. Expansión de estados sucesores
         expandirEstado(actual);
 
-        // Monitor de progreso para el profesor
+        // Monitor de progreso (Feedback para el usuario en consola)
         if (estadosProcesados % 5000 == 0) {
-            std::cout << "[INFO] Procesados: " << estadosProcesados 
-                      << " | En espera (Open): " << open.getTamano() << std::endl;
+            printf("[INFO] Procesados: %d | En espera (Open): %d\n", 
+                    estadosProcesados, open.getTamano());
         }
     }
 
-    std::cout << "\n[DERROTA] No se halló solución tras explorar " << estadosProcesados << " estados." << std::endl;
+    printf("\n[FAIL] No se hallo solucion tras explorar %d estados.\n", estadosProcesados);
     return false;
-}
-
-void Solver::expandirEstado(State* actual) {
-    int nB = actual->getNumBloques();
-    Direccion direcciones[] = {Direccion::U, Direccion::D, Direccion::L, Direccion::R};
-
-    for (int i = 0; i < nB; i++) {
-        if (!actual->getPosiciones()[i].activo) continue;
-
-        for (Direccion d : direcciones) {
-            State* nuevo = Movimiento::ejecutar(i, d, actual, tableroMaestro);
-            
-            if (nuevo != nullptr) {
-                if (!closed.existe(nuevo)) {
-                    nuevo->setH(calcularHeuristica(nuevo));
-                    open.push(nuevo);
-                    closed.insertar(nuevo); 
-                } else {
-                    delete nuevo;
-                }
-            }
-        }
-    }
-}
-
-int Solver::calcularHeuristica(State* s) {
-    if (!s || !tableroMaestro) return 0;
-
-    int hTotal = 0;
-    int nB = s->getNumBloques();
-    PosBloque* posiciones = s->getPosiciones();
-
-    for (int i = 0; i < nB; i++) {
-        if (!posiciones[i].activo) continue;
-
-        Bloque* bTemplate = tableroMaestro->getBloquePtr(i);
-        // Implementación manual de tolower si es necesario, o usar cctype
-        char colorB = (char)tolower(bTemplate->getColor());
-
-        int minManhattan = 1000000; 
-        bool tieneSalidaValida = false;
-
-        for (int j = 0; j < tableroMaestro->getNumSalidas(); j++) {
-            Salida* sal = tableroMaestro->getSalidaPtr(j);
-            
-            if (sal && (char)tolower(sal->getColor()) == colorB) {
-                int dist = std::abs(posiciones[i].x - sal->getX()) + 
-                           std::abs(posiciones[i].y - sal->getY());
-                
-                if (dist < minManhattan) minManhattan = dist;
-                tieneSalidaValida = true;
-            }
-        }
-        hTotal += tieneSalidaValida ? minManhattan : 100;
-    }
-    return hTotal;
-}
-
-/**
- * imprimirCamino() - Refactorizada para no usar std::vector
- */
-void Solver::imprimirCamino(State* meta) {
-    State* target = (meta != nullptr) ? meta : estadoFinal;
-    if (!target) {
-        std::cout << "No hay camino que imprimir." << std::endl;
-        return;
-    }
-
-    // 1. Contar cuántos estados hay en el camino
-    int profundidad = 0;
-    State* temp = target;
-    while (temp != nullptr) {
-        profundidad++;
-        temp = temp->getPadre();
-    }
-
-    // 2. Crear un arreglo dinámico simple
-    State** camino = new State*[profundidad];
-    temp = target;
-    for (int i = profundidad - 1; i >= 0; i--) {
-        camino[i] = temp;
-        temp = temp->getPadre();
-    }
-
-    // 3. Imprimir en orden correcto
-    std::cout << "--- Secuencia de Solucion (" << target->getG() << " pasos) ---" << std::endl;
-    for (int i = 0; i < profundidad; i++) {
-        std::cout << "Paso " << camino[i]->getG() << ": " << camino[i]->getOperacion() << std::endl;
-    }
-
-    // 4. Liberar el arreglo temporal (no los States, que están en closed)
-    delete[] camino;
 }
 
 PosBloque* Solver::capturarPosicionesActuales() {
@@ -181,10 +82,6 @@ PosBloque* Solver::capturarPosicionesActuales() {
     return pos;
 }
 
-int Solver::getPasosSolucion() {
-    return (estadoFinal != nullptr) ? estadoFinal->getG() : -1;
-}
-
 bool Solver::esEstadoFinal(State* s) {
     if (!s) return false;
     PosBloque* posiciones = s->getPosiciones();
@@ -192,4 +89,101 @@ bool Solver::esEstadoFinal(State* s) {
         if (posiciones[i].activo) return false;
     }
     return true;
+}
+
+void Solver::expandirEstado(State* actual) {
+    int nB = actual->getNumBloques();
+    // Definimos las direcciones posibles
+    Direccion direcciones[] = {Direccion::U, Direccion::D, Direccion::L, Direccion::R};
+
+    for (int i = 0; i < nB; i++) {
+        // Solo mover bloques que aún están en el tablero
+        if (!actual->getPosiciones()[i].activo) continue;
+
+        for (int dIdx = 0; dIdx < 4; dIdx++) {
+            Direccion d = direcciones[dIdx];
+            
+            // Intentar generar un nuevo estado
+            State* nuevo = Movimiento::ejecutar(i, d, actual, tableroMaestro);
+            
+            if (nuevo != nullptr) {
+                // Verificar si ya visitamos este estado (O(1) o O(log N))
+                if (!closed.existe(nuevo)) {
+                    nuevo->setH(calcularHeuristica(nuevo));
+                    open.push(nuevo);     // Insertar en Heap
+                    closed.insertar(nuevo); // Marcar como visitado
+                } else {
+                    delete nuevo; // Si ya existe, liberar memoria inmediatamente
+                }
+            }
+        }
+    }
+}
+
+
+int Solver::calcularHeuristica(State* s) {
+    if (!s || !tableroMaestro) return 0;
+
+    int hTotal = 0;
+    int nB = s->getNumBloques();
+    PosBloque* posiciones = s->getPosiciones();
+
+    for (int i = 0; i < nB; i++) {
+        if (!posiciones[i].activo) continue;
+
+        // Obtenemos el color del bloque original
+        char colorB = (char)tolower(tableroMaestro->getBloquePtr(i)->getColor());
+        int minManhattan = 1000000; 
+        bool tieneSalidaValida = false;
+
+        // Buscar la salida más cercana del mismo color
+        for (int j = 0; j < tableroMaestro->getNumSalidas(); j++) {
+            Salida* sal = tableroMaestro->getSalidaPtr(j);
+            if (sal && (char)tolower(sal->getColor()) == colorB) {
+                // Distancia Manhattan: |x1-x2| + |y1-y2|
+                int dx = posiciones[i].x - sal->getX();
+                int dy = posiciones[i].y - sal->getY();
+                if (dx < 0) dx = -dx;
+                if (dy < 0) dy = -dy;
+                
+                int dist = dx + dy;
+                if (dist < minManhattan) minManhattan = dist;
+                tieneSalidaValida = true;
+            }
+        }
+        // Si el bloque no tiene salida, penalizamos fuerte
+        hTotal += tieneSalidaValida ? minManhattan : 100;
+    }
+    return hTotal;
+}
+
+void Solver::imprimirCamino(State* meta) {
+    State* target = (meta != nullptr) ? meta : estadoFinal;
+    if (!target) {
+        printf("No hay camino que imprimir.\n");
+        return;
+    }
+
+    // Contar profundidad para el arreglo
+    int profundidad = 0;
+    State* temp = target;
+    while (temp != nullptr) {
+        profundidad++;
+        temp = temp->getPadre();
+    }
+
+    // Invertir el camino usando un arreglo dinámico manual (sustituto de vector)
+    State** camino = new State*[profundidad];
+    temp = target;
+    for (int i = profundidad - 1; i >= 0; i--) {
+        camino[i] = temp;
+        temp = temp->getPadre();
+    }
+
+    printf("--- Secuencia de Solucion (%d pasos) ---\n", target->getG());
+    for (int i = 0; i < profundidad; i++) {
+        printf("Paso %d: %s\n", camino[i]->getG(), camino[i]->getOperacion());
+    }
+
+    delete[] camino;
 }

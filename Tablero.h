@@ -6,7 +6,8 @@
 #include "Portal.h"
 
 /**
- * DECLARACIÓN DE AVANCE (Forward Declaration)
+ * Forward Declaration para evitar ciclos de inclusión.
+ * Se usa porque actualizarDesdeEstado recibe un puntero a State.
  */
 class State; 
 
@@ -21,10 +22,11 @@ private:
     int pasoActual;
     int bloquesRestantes;
 
-    // Mapa base: Solo contiene muros '#' y espacios vacíos.
+    // Mapa base: Contiene muros '#', espacios ' ' y caracteres de portales.
     char* matrizContigua;
     char** matriz; 
 
+    // Estructuras de datos dinámicas manuales (Sustituyen a std::vector)
     Bloque** bloques;
     int numBloques;
     int capacidadBloques;
@@ -37,64 +39,75 @@ private:
     int numPortales;
     int capacidadPortales;
 
+    // Métodos privados de gestión de memoria
     void liberarMemoria();
+    // Nota: copiarDesde es opcional si no permites copias de tablero (recomendado para evitar fugas)
     void copiarDesde(const Tablero& otra);
 
 public:
     Tablero();
+    // Constructor de copia y operador de asignación para cumplir con la Regla de los Tres
     Tablero(const Tablero& otra);
     Tablero& operator=(const Tablero& otra);
     ~Tablero();
 
     // --- Métodos de Estado y Lógica ---
-    void actualizarDesdeEstado(State* s); // Sincroniza y estampa bloques para renderizar
+    // Sincroniza la posición de los objetos físicos del tablero con un estado lógico del Solver
+    void actualizarDesdeEstado(State* s); 
 
-    // --- Métodos de Configuración (Carga del Nivel) ---
+    // --- Métodos de Configuración (Usados por LectorArchivo) ---
     void setDimensiones(int w, int h);
     void setPared(int fila, int col, char valor);
     void agregarBloque(Bloque* b);
     void agregarSalida(Salida* s);
     void agregarPortal(Portal* p);
 
-    // --- API de Consulta Estática (Para Clase Movimiento) ---
+    // --- API de Consulta (Utilizada por Movimiento.cpp y Solver.cpp) ---
+    
     /**
-     * Retorna el contenido del mapa base en (x, y). Útil para muros.
+     * Retorna el carácter almacenado en la matriz estática (muros o portales).
      */
     char getCeldaEstatica(int x, int y) const;
     
     /**
-     * Retorna puntero a salida en (x, y) si existe, nullptr si no.
+     * Busca y retorna una salida en coordenadas específicas.
      */
     Salida* getSalidaEn(int x, int y) const;
     
     /**
-     * Retorna puntero a portal en (x, y) si existe, nullptr si no.
+     * Busca y retorna un portal en coordenadas específicas.
      */
     Portal* getPortalEn(int x, int y) const;
-    bool esPortal(int y, int x) const;
+    
+    /**
+     * Determina si hay un portal en la posición indicada.
+     */
+    bool esPortal(int x, int y) const;
 
     /**
-     * Verifica si una coordenada está dentro de los límites del arreglo.
+     * Verifica que las coordenadas no se salgan del arreglo de la matriz.
      */
     bool enLimites(int x, int y) const;
 
     /**
-     * Compara el bloque (id) con la salida en (x, y) para verificar meta.
+     * Verifica si el bloque con id dado coincide en color con la salida en (x,y).
      */
-    bool comprobarMeta(int id, int x, int y) const;
+    bool comprobarMeta(int idBloque, int x, int y) const;
 
-    // --- Getters ---
+    // --- Getters Lineales ---
     inline int getWidth() const       { return width; }
     inline int getHeight() const      { return height; }
     inline int getNumBloques() const  { return numBloques; }
     inline int getNumSalidas() const  { return numSalidas; }
     inline int getNumPortales() const { return numPortales; }
     
+    // Acceso a punteros por índice
     Bloque* getBloquePtr(int i) const;
     Salida* getSalidaPtr(int i) const;
     Portal* getPortalPtr(int i) const;
 
     // --- Visualización ---
+    // Imprime el tablero en consola usando printf para cumplir "Sin STL"
     void imprimir();
 };
 

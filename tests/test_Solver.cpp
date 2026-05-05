@@ -1,78 +1,101 @@
-#include <iostream>
-#include <vector> // Necesario para almacenar el camino
-#include <cstdio> // Para getchar()
+#include <cstdio>
+#include "LectorArchivo.h"
 #include "Tablero.h"
 #include "Bloque.h"
 #include "Salida.h"
 #include "Solver.h"
+#include "State.h"
 
 int main() {
-    std::cout << "--- Test de Integracion: Solver A* (Multi-Bloque) ---" << std::endl;
+    printf("--- Test de Integracion: Solver A* (Carga desde Archivo) ---\n");
 
-    // 1. Crear el Tablero
-    Tablero* tableroInicial = new Tablero();
-    tableroInicial->setDimensiones(6, 6);
+    // 1. Instanciar el lector y cargar el nivel
+    LectorArchivo lector;
+    const char* nombreArchivo = "simple1.txt";
+    
+    // El método cargarNivel ahora se encarga de crear el 'new Tablero'
+    // y configurar sus dimensiones, bloques, paredes y salidas.
+    Tablero* tableroInicial = lector.cargarNivel(nombreArchivo);
 
-    // 2. Crear Bloques (A en 1,1 y B en 1,2)
-    bool* geoA = new bool[1]{true}; 
-    Bloque* bA = new Bloque(1, 'A', 1, 1, 1, 1, geoA);
-
-    bool* geoB = new bool[1]{true}; 
-    Bloque* bB = new Bloque(2, 'B', 2, 1, 1, 1, geoB); // Cambiado a (2,1) para dar espacio
-
-    // 3. Crear Salidas
-    Salida* sA = new Salida('A', 3, 3, 0, 0, 1, 1, 0);
-    Salida* sB = new Salida('B', 4, 4, 0, 0, 1, 1, 0);
-
-    tableroInicial->agregarBloque(bA);
-    tableroInicial->agregarBloque(bB);
-    tableroInicial->agregarSalida(sA);
-    tableroInicial->agregarSalida(sB);
-
-    // 4. Configuracion del Solver
-    Solver solver(tableroInicial);
-    std::cout << "Iniciando busqueda de solucion para 2 bloques..." << std::endl;
-
-    // 5. Ejecucion y Visualización
-    if (solver.resolver()) {
-        std::cout << "\n[SUCCESS] Solucion encontrada!" << std::endl;
-        
-        // --- RECONSTRUCCIÓN DEL CAMINO ---
-        std::vector<State*> camino;
-        State* actual = solver.getEstadoFinal();
-        
-        while (actual != nullptr) {
-            camino.push_back(actual);
-            actual = actual->getPadre();
-        }
-
-        std::cout << "Mostrando secuencia de movimientos (Presiona ENTER para el siguiente paso):" << std::endl;
-
-        // Recorremos el vector en reversa (del inicio a la meta)
-        for (int i = camino.size() - 1; i >= 0; i--) {
-            std::cout << "\n================================" << std::endl;
-            std::cout << "PASO " << (camino.size() - 1 - i) << " / " << (camino.size() - 1);
-            std::cout << " | Movimiento: " << camino[i]->getOperacion() << std::endl;
-
-            // Sincronizar el tablero maestro con los datos del estado actual
-            tableroInicial->actualizarDesdeEstado(camino[i]);
-            
-            // Imprimir visualmente
-            tableroInicial->imprimir();
-
-            //std::cout << "Presiona ENTER para continuar..." << std::endl;
-            //std::getchar(); // Espera entrada del usuario
-        }
-
-        std::cout << "\n¡Meta alcanzada con éxito!" << std::endl;
-        
-    } else {
-        std::cout << "\n[FAIL] El Solver no pudo encontrar una ruta." << std::endl;
+    // Verificación de seguridad
+    if (tableroInicial == nullptr) {
+        printf("[ERROR] No se pudo cargar el archivo: %s\n", nombreArchivo);
+        return 1;
     }
 
-    // 6. Limpieza
+    printf("Archivo '%s' cargado con éxito.\n", nombreArchivo);
+    printf("Estado Inicial:\n");
+    tableroInicial->imprimir();
+
+   // 2. Configuración del Solver
+    // Pasamos el tablero al constructor para que sea el 'tableroMaestro'
+    Solver solver(tableroInicial);
+    printf("\nIniciando busqueda de solucion con A*...\n");
+
+    // 3. Ejecución: Llamada sin argumentos según la nueva estructura
+    if (solver.resolver()) { 
+        printf("\n[SUCCESS] Solucion encontrada!\n");
+        
+        // --- RECONSTRUCCIÓN DEL CAMINO (Sin STL) ---
+        State* final = solver.getEstadoFinal();
+        int totalPasos = 0;
+        State* temp = final;
+
+        // Contar profundidad del camino
+        while (temp != nullptr) {
+            totalPasos++;
+            temp = temp->getPadre();
+        }
+
+        // Crear arreglo dinámico para invertir el orden (de inicio a fin)
+        State** camino = new State*[totalPasos];
+        temp = final;
+        for (int i = totalPasos - 1; i >= 0; i--) {
+            camino[i] = temp;
+            temp = temp->getPadre();
+        }
+
+        printf("Mostrando secuencia de pasos detallada:\n");
+
+        for (int i = 0; i < totalPasos; i++) {
+            printf("\n================================\n");
+            printf("PASO %d / %d", i, totalPasos - 1);
+            
+            // Mostrar la operación que llevó a este estado
+            if (camino[i]->getOperacion() != nullptr) {
+                printf(" | Movimiento: %s\n", camino[i]->getOperacion());
+            } else {
+                printf(" | Estado Inicial\n");
+            }
+
+            // 1. Sincronizar el tablero físico con la "foto" del estado lógico
+            tableroInicial->actualizarDesdeEstado(camino[i]);
+
+            // 2. Imprimir cabecera de columnas dinámica (opcional si imprimir() no lo hace)
+            printf("    ");
+            for (int c = 0; c < tableroInicial->getWidth(); c++) {
+                printf("%d", c % 10);
+            }
+            printf("\n");
+
+            // 3. Dibujar el tablero
+            tableroInicial->imprimir();
+        }
+
+        printf("\n¡Meta alcanzada con éxito!\n");
+        
+        // Liberar el arreglo temporal de punteros (No los estados en sí)
+        delete[] camino; 
+
+    } else {
+        printf("\n[FAIL] El Solver no pudo encontrar una ruta para este nivel.\n");
+    }
+
+    // 4. Limpieza de memoria
+    // Al borrar tableroInicial, asegúrate de que su destructor limpie 
+    // la lista de bloques y salidas creadas por el lector.
     delete tableroInicial; 
-    std::cout << "--- Fin del Test: Memoria liberada ---" << std::endl;
+    printf("--- Fin del Test: Memoria liberada ---\n");
 
     return 0;
 }

@@ -1,11 +1,10 @@
 #include "Tablero.h"
-#include <cstdio>
-#include <iostream>
-// Eliminamos #include <string>
+#include <cstdio>   // Sustituto de iostream
+#include <cctype>   // Para tolower/toupper
 #include "State.h"
 
 // ============================================================
-// 1. CICLO DE VIDA (CONSTRUCTORES Y MEMORIA)
+// 1. CICLO DE VIDA
 // ============================================================
 
 Tablero::Tablero() 
@@ -13,7 +12,7 @@ Tablero::Tablero()
       matrizContigua(nullptr), matriz(nullptr),
       bloques(nullptr), numBloques(0), capacidadBloques(0),
       salidas(nullptr), numSalidas(0), capacidadSalidas(0),
-      portales(nullptr), numPortales(0), capacidadPortales(0) // Asegúrate de inicializar capacidadPortales
+      portales(nullptr), numPortales(0), capacidadPortales(0)
 {}
 
 Tablero::~Tablero() {
@@ -21,9 +20,7 @@ Tablero::~Tablero() {
 }
 
 void Tablero::liberarMemoria() {
-    // Liberar punteros de filas primero
     if (matriz) delete[] matriz;
-    // Liberar bloque de memoria contiguo
     if (matrizContigua) delete[] matrizContigua;
     
     matriz = nullptr;
@@ -48,8 +45,15 @@ void Tablero::liberarMemoria() {
     }
 }
 
+Portal* Tablero::getPortalPtr(int i) const { 
+    return (i >= 0 && i < numPortales) ? portales[i] : nullptr; 
+}
+bool Tablero::esPortal(int x, int y) const {
+    // IMPORTANTE: Debe llamar a getPortalEn con el mismo orden (x, y)
+    return (this->getPortalEn(x, y) != nullptr);
+}
 // ============================================================
-// 2. CONFIGURACIÓN Y CARGA
+// 2. CONFIGURACIÓN
 // ============================================================
 
 void Tablero::setDimensiones(int w, int h) {
@@ -70,7 +74,6 @@ void Tablero::setPared(int fila, int col, char valor) {
     }
 }
 
-// Implementación manual de redimensionamiento (Vector-like sin STL)
 void Tablero::agregarBloque(Bloque* b) {
     if (!b) return;
     if (numBloques >= capacidadBloques) {
@@ -102,10 +105,7 @@ void Tablero::agregarPortal(Portal* p) {
     if (numPortales >= capacidadPortales) {
         int nuevaCap = (capacidadPortales == 0) ? 5 : capacidadPortales * 2;
         Portal** nuevo = new Portal*[nuevaCap];
-        for (int i = 0; i < nuevaCap; i++) {
-            if (i < numPortales) nuevo[i] = portales[i];
-            else nuevo[i] = nullptr;
-        }
+        for (int i = 0; i < numPortales; i++) nuevo[i] = portales[i];
         delete[] portales;
         portales = nuevo;
         capacidadPortales = nuevaCap;
@@ -115,7 +115,7 @@ void Tablero::agregarPortal(Portal* p) {
 }
 
 // ============================================================
-// 3. RENDERIZADO (SIN STL)
+// 3. RENDERIZADO (CORREGIDO Y SIN STL)
 // ============================================================
 
 void Tablero::actualizarDesdeEstado(State* s) {
@@ -123,14 +123,18 @@ void Tablero::actualizarDesdeEstado(State* s) {
     PosBloque* nuevasPos = s->getPosiciones();
     int nS = s->getNumBloques();
 
-    // 1. Reset
+    // 1. Limpiar solo lo que NO es pared ('#') o Portal (Letras de color de pared)
+    // Pero es más seguro limpiar todo y redibujar estáticos para evitar "fantasmas"
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
+            // Nota: Si tienes paredes estáticas guardadas en una matriz base, 
+            // aquí deberías restaurar desde esa base. 
+            // Si no, solo limpiamos lo que no es '#'
             if (matriz[i][j] != '#') matriz[i][j] = ' ';
         }
     }
 
-    // 2. Salidas
+    // 2. Redibujar Salidas (Minúsculas)
     for (int i = 0; i < numSalidas; i++) {
         Salida* sal = salidas[i];
         if (enLimites(sal->getX(), sal->getY())) {
@@ -138,7 +142,7 @@ void Tablero::actualizarDesdeEstado(State* s) {
         }
     }
 
-    // 3. Bloques
+    // 3. Redibujar Bloques (Mayúsculas)
     this->bloquesRestantes = 0;
     for (int i = 0; i < numBloques && i < nS; i++) {
         Bloque* b = bloques[i];
@@ -149,6 +153,8 @@ void Tablero::actualizarDesdeEstado(State* s) {
         if (b->estaActivo()) {
             this->bloquesRestantes++;
             char colorMayus = (char)toupper(b->getColor());
+            
+            // Dibujar según geometría del bloque
             for (int rY = 0; rY < b->getAltoGeo(); rY++) {
                 for (int rX = 0; rX < b->getAnchoGeo(); rX++) {
                     if (b->getGeometria(rY, rX)) {
@@ -163,23 +169,28 @@ void Tablero::actualizarDesdeEstado(State* s) {
 }
 
 void Tablero::imprimir() {
-    std::cout << "   ";
-    for (int j = 0; j < width; j++) std::cout << j % 10;
+    // 1. Números de columnas
+    printf("    ");
+    for (int j = 0; j < width; j++) printf("%d", j % 10);
     
-    // Sustitución de std::string(width, '-') por bucle manual
-    std::cout << "\n   +";
-    for (int j = 0; j < width; j++) std::cout << '-';
-    std::cout << "+\n";
+    // 2. Borde superior
+    printf("\n    +");
+    for (int j = 0; j < width; j++) putchar('-');
+    printf("+\n");
 
+    // 3. Contenido de las filas
     for (int i = 0; i < height; i++) {
-        std::printf("%2d |", i);
-        for (int j = 0; j < width; j++) std::cout << matriz[i][j];
-        std::cout << "|\n";
+        printf("%3d |", i);
+        for (int j = 0; j < width; j++) {
+            putchar(matriz[i][j]);
+        }
+        printf("|\n");
     }
 
-    std::cout << "   +";
-    for (int j = 0; j < width; j++) std::cout << '-';
-    std::cout << "+\n";
+    // 4. Borde inferior
+    printf("    +");
+    for (int j = 0; j < width; j++) putchar('-');
+    printf("+\n");
 }
 
 // ============================================================
@@ -198,36 +209,46 @@ Salida* Tablero::getSalidaEn(int x, int y) const {
     return nullptr;
 }
 
-bool Tablero::esPortal(int y, int x) const {
-    if (!enLimites(x, y)) return false;
-    return getPortalEn(x, y) != nullptr;
-}
-
-Portal* Tablero::getPortalEn(int x, int y) const {
-    if (!enLimites(x, y) || portales == nullptr) return nullptr;
-    for (int i = 0; i < numPortales; i++) {
-        if (portales[i] && portales[i]->getX() == x && portales[i]->getY() == y) 
-            return portales[i];
-    }
-    return nullptr;
-}
-
 bool Tablero::enLimites(int x, int y) const {
     return (x >= 0 && x < width && y >= 0 && y < height);
 }
 
-bool Tablero::comprobarMeta(int id, int x, int y) const {
-    Bloque* b = nullptr;
-    for(int i=0; i<numBloques; i++) {
-        if(bloques[i]->getId() == id) { b = bloques[i]; break; }
-    }
-    Salida* s = getSalidaEn(x, y);
-    if (s && b) {
-        return (tolower(s->getColor()) == tolower(b->getColor()));
-    }
-    return false;
-}
-
 Bloque* Tablero::getBloquePtr(int i) const { return (i>=0 && i<numBloques) ? bloques[i] : nullptr; }
 Salida* Tablero::getSalidaPtr(int i) const { return (i>=0 && i<numSalidas) ? salidas[i] : nullptr; }
-Portal* Tablero::getPortalPtr(int i) const { return (i>=0 && i<numPortales) ? portales[i] : nullptr; }
+// 2. Para obtener un portal sabiendo su ubicación en el mapa (Coordenadas)
+// Este es el que busca Movimiento.cpp
+Portal* Tablero::getPortalEn(int x, int y) const {
+    if (!enLimites(x, y) || portales == nullptr) return nullptr;
+    
+    for (int i = 0; i < numPortales; i++) {
+        if (portales[i] != nullptr && 
+            portales[i]->getX() == x && 
+            portales[i]->getY() == y) {
+            return portales[i]; // Encontrado
+        }
+    }
+    return nullptr; // No hay portal en esa coordenada
+}
+
+bool Tablero::comprobarMeta(int idBloque, int x, int y) const {
+    // 1. Buscar el bloque por ID
+    Bloque* b = nullptr;
+    for(int i = 0; i < numBloques; i++) {
+        if(bloques[i]->getId() == idBloque) { 
+            b = bloques[i]; 
+            break; 
+        }
+    }
+    
+    // 2. Buscar salida en esa posición
+    Salida* s = getSalidaEn(x, y);
+    
+    // 3. Validar coincidencia de color (Case Insensitive)
+    if (s != nullptr && b != nullptr) {
+        char colorS = (char)tolower(s->getColor());
+        char colorB = (char)tolower(b->getColor());
+        return (colorS == colorB);
+    }
+    
+    return false;
+}

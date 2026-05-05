@@ -29,6 +29,7 @@ private:
      * Bloque dentro del tablero. Solo se usa para generar el estado raíz.
      */
     PosBloque* capturarPosicionesActuales();
+    bool esEstadoFinal(State* s);
 
 public:
     Solver();
@@ -39,7 +40,7 @@ public:
      * Ejecuta el algoritmo A*.
      * @return true si encontró una solución, false en caso contrario.
      */
-    bool resolver(Tablero* t);
+    bool resolver();
 
     /**
      * Genera todos los movimientos posibles para un estado dado.
@@ -50,7 +51,7 @@ public:
     /**
      * Verifica si en el estado dado todos los bloques han llegado a su meta.
      */
-    bool esEstadoFinal(State* s);
+  
 
     /**
      * Retorna el costo g(n) (número de pasos) del estado solución.

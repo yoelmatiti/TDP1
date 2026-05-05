@@ -18,11 +18,11 @@ void testPrioridadMinima() {
     // Constructor: State(Tablero*, g, h, Padre, Operacion)
     std::cout << "-> Insertando f=50, f=10, f=30, f=5, f=20..." << std::endl;
     
-    miHeap.push(new State(nullptr, 50, 0, nullptr, "M1")); // f=50
-    miHeap.push(new State(nullptr, 5, 5, nullptr, "M2"));  // f=10
-    miHeap.push(new State(nullptr, 30, 0, nullptr, "M3")); // f=30
-    miHeap.push(new State(nullptr, 2, 3, nullptr, "M4"));  // f=5
-    miHeap.push(new State(nullptr, 10, 10, nullptr, "M5"));// f=20
+    miHeap.push(new State(0,nullptr, 50, 0, nullptr, "M1")); // f=50
+    miHeap.push(new State(0,nullptr, 5, 5, nullptr, "M2"));  // f=10
+    miHeap.push(new State(0, nullptr, 30, 0, nullptr, "M3")); // f=30
+    miHeap.push(new State(0, nullptr, 2, 3, nullptr, "M4"));  // f=5
+    miHeap.push(new State(0, nullptr, 10, 10, nullptr, "M5"));// f=20
 
     std::cout << "-> Extrayendo elementos (esperado orden ascendente):" << std::endl;
 
