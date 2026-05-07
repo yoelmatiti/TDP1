@@ -41,17 +41,14 @@ TablaHash::~TablaHash() {
  * Aplicamos una máscara de bits para asegurar que el índice sea positivo.
  */
 unsigned int TablaHash::obtenerIndice(long long hashEstado) const {
-    return (unsigned int)(hashEstado & 0x7FFFFFFF) % capacidad;
+    return (unsigned int)(hashEstado ) % capacidad;
 }
 
 /**
  * Inserción de estados únicos.
  */
-void TablaHash::insertar(State* s) {
-    if (!s || existe(s)) {
-        delete s; // Evitamos fugas de memoria si el estado ya existe o es nulo
-        return;
-    }
+bool TablaHash::insertar(State* s) {
+    if (!s || existe(s)) return false;
 
     unsigned int indice = obtenerIndice(s->getHash());
 
@@ -59,6 +56,7 @@ void TablaHash::insertar(State* s) {
     NodoHash* nuevo = new NodoHash(s);
     nuevo->siguiente = tabla[indice];
     tabla[indice] = nuevo;
+    return true;
 }
 
 /**

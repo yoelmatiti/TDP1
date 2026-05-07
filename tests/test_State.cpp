@@ -2,10 +2,11 @@
 #include "State.h"
 #include "LectorArchivo.h"
 #include <cstdio>
+#include <iostream>
 
 int main() {
     LectorArchivo lector;
-    Tablero* tableroMaestro = lector.cargarNivel("facil2_corregido.txt");
+    Tablero* tableroMaestro = lector.cargarNivel("simple1.txt");
 
     if (tableroMaestro == nullptr) {
         printf("[ERROR] No se pudo cargar el nivel.\n");
@@ -14,7 +15,6 @@ int main() {
 
     printf("--- Test de Consistencia de Estado ---\n");
 
-    // 2. Preparar datos iniciales
     int nB = tableroMaestro->getNumBloques();
     PosBloque* posIniciales = new PosBloque[nB];
     for (int i = 0; i < nB; i++) {
@@ -24,38 +24,42 @@ int main() {
         posIniciales[i].activo = true;
     }
 
-    // 3. Crear s1 y su copia s2
     State* s1 = new State(nB, posIniciales, 0, 0, nullptr, "Inicio");
-    State* s2 = new State(*s1); // Constructor de copia (Deep Copy)
+    State* s2 = new State(*s1); // Deep Copy
 
     printf("Verificando independencia de memoria...\n");
-    
-    // Validamos que al inicio son iguales
     if (s1->operator==(*s2)) {
         printf("[OK] El operador == detecta que son identicos tras copiar.\n");
     }
 
-    // 4. Probar independencia creando un s3 con cambios (Simulando un movimiento)
-    // En lugar de modificar s2 (que es inmutable), creamos s3 basado en s1 pero con una diff
-    posIniciales[0].x += 1; // Simulamos que el primer bloque se movio a la derecha
+    // --- MODIFICACIÓN AQUÍ ---
+    // Simulamos movimiento: incrementamos X del primer bloque
+    posIniciales[0].x += 1; 
     State* s3 = new State(nB, posIniciales, 1, 10, s1, "B0 R");
 
-    // Verificamos que s1 NO cambio sus valores internos por culpa de s3
+    // Bloque de depuración adaptado: usamos s3 en lugar de s_meta
+    if (s3 != nullptr) {
+        std::cout << "\n[DEBUG State] Datos de s3 (estado movido):" << std::endl;
+        std::cout << "  - Posicion Bloque 0: (" 
+                  << s3->getPosicion(0).x << "," 
+                  << s3->getPosicion(0).y << ")" << std::endl;
+        std::cout << "  - Estado activo: " 
+                  << (s3->getPosicion(0).activo ? "SI" : "NO") << std::endl;
+    }
+    // -------------------------
+
     if (s1->getPosicion(0).x != s3->getPosicion(0).x) {
         printf("[OK] Independencia confirmada: s1 mantiene x=%d, s3 tiene x=%d\n", 
                 s1->getPosicion(0).x, s3->getPosicion(0).x);
     }
 
-    // 5. Probar el rastro de operaciones (Recursividad estilo profesor)
     printf("\nVisualizando rastro de movimientos (de s3 hacia atras):\n");
     s3->printOperaciones();
 
-    // 6. Probar esFinal
     if (!s1->esFinal()) {
         printf("\n[OK] s1 detecta que aun quedan bloques activos.\n");
     }
 
-    // Limpieza
     delete[] posIniciales;
     delete s1;
     delete s2;

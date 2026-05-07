@@ -27,6 +27,27 @@ Salida::Salida(char _color, int _x, int _y, int _dX, int _dY,
 }
 */
 
+// Constructor de Copia (Aunque Salida no tiene memoria dinámica, cumplimos Regla de los Tres)
+Salida::Salida(const Salida& otro) 
+    : color(otro.color), x(otro.x), y(otro.y), direccionX(otro.direccionX), 
+      direccionY(otro.direccionY), longitudInicial(otro.longitudInicial), 
+      longitudFinal(otro.longitudFinal), pasoCambio(otro.pasoCambio) {}
+
+// Operador de Asignación
+Salida& Salida::operator=(const Salida& otro) {
+    if (this != &otro) {
+        color = otro.color;
+        x = otro.x;
+        y = otro.y;
+        direccionX = otro.direccionX;
+        direccionY = otro.direccionY;
+        longitudInicial = otro.longitudInicial;
+        longitudFinal = otro.longitudFinal;
+        pasoCambio = otro.pasoCambio;
+    }
+    return *this;
+}
+
 int Salida::getLongitudActual(int tiempoG) const {
     if (pasoCambio <= 0) return longitudInicial;
     

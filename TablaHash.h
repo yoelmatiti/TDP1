@@ -39,7 +39,7 @@ public:
      * Inserta un puntero al estado en la tabla. 
      * Nota: La TablaHash no debe borrar el objeto State, eso lo hace el Solver.
      */
-    void insertar(State* s); 
+    bool insertar(State* s); 
 
     /**
      * Verifica si un estado (por su contenido de posiciones) ya fue visitado.

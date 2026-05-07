@@ -13,7 +13,7 @@ int main() {
 
     // 1. Cargar el escenario usando LectorArchivo
     LectorArchivo lector;
-    Tablero* tab = lector.cargarNivel("facil2_corregido.txt");
+    Tablero* tab = lector.cargarNivel("simple1.txt");
     
     if (!tab) {
         std::cerr << "Error critico: No se pudo cargar el archivo de nivel." << std::endl;

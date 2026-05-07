@@ -69,6 +69,8 @@ public:
     
     // Getter para la operación que generó este estado
     const char* getOperacion() const { return operacion ? operacion : ""; }
+    void setDesactivado(int indice) { posiciones[indice].activo = false; }
+
 };
 
 #endif

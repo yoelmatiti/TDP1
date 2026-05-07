@@ -65,9 +65,9 @@ void test_meta_desactivacion() {
     Bloque* b1 = new Bloque(1, 'A', 1, 1, 1, 1, geoA);
     t.agregarBloque(b1);
     
-    // Ajustar constructor de Salida según tu Tablero.h
-    // COLOR, X, Y, ORIENTATION, LI, LF, STEP
-    Salida* s1 = new Salida('A', 2, 1, 'V', 1, 1, 0);
+    // Salida: color, x, y, direccionX, direccionY, longitudInicial, longitudFinal, pasoCambio
+    // En este caso: exitida 'A' en (2,1), extendida horizontalmente (hacia la derecha), longitud inicial 1, final 1, paso 0
+    Salida* s1 = new Salida('A', 2, 1, 1, 0, 1, 1, 0);
     t.agregarSalida(s1);
 
     PosBloque* pos = new PosBloque[1];

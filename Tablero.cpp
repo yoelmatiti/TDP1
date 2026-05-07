@@ -19,6 +19,94 @@ Tablero::~Tablero() {
     liberarMemoria();
 }
 
+// Constructor de Copia (PROFUNDA Y EN CASCADA para A*)
+Tablero::Tablero(const Tablero& otra) 
+    : width(0), height(0), pasoActual(0), bloquesRestantes(0),
+      matrizContigua(nullptr), matriz(nullptr),
+      bloques(nullptr), numBloques(0), capacidadBloques(0),
+      salidas(nullptr), numSalidas(0), capacidadSalidas(0),
+      portales(nullptr), numPortales(0), capacidadPortales(0)
+{
+    *this = otra;
+}
+
+// Operador de Asignación (Implementa la copia profunda en cascada)
+Tablero& Tablero::operator=(const Tablero& otra) {
+    if (this != &otra) {
+        // 1. Liberar memoria existente
+        liberarMemoria();
+
+        // 2. Copiar dimensiones y pasos
+        this->width = otra.width;
+        this->height = otra.height;
+        this->pasoActual = otra.pasoActual;
+        this->bloquesRestantes = otra.bloquesRestantes;
+
+        // 3. Copiar matrices (matrizContigua y matriz)
+        if (otra.matrizContigua && width > 0 && height > 0) {
+            int tam = width * height;
+            this->matrizContigua = new char[tam];
+            for (int i = 0; i < tam; i++) {
+                this->matrizContigua[i] = otra.matrizContigua[i];
+            }
+
+            this->matriz = new char*[height];
+            for (int i = 0; i < height; i++) {
+                this->matriz[i] = &this->matrizContigua[i * width];
+            }
+        }
+
+        // 4. Copiar BLOQUES (Copia Profunda: llama al constructor de copia de Bloque)
+        if (otra.bloques && otra.numBloques > 0) {
+            this->capacidadBloques = otra.capacidadBloques;
+            this->numBloques = otra.numBloques;
+            this->bloques = new Bloque*[capacidadBloques];
+            
+            for (int i = 0; i < numBloques; i++) {
+                if (otra.bloques[i]) {
+                    // Llamar al constructor de copia de Bloque (Deep Copy)
+                    this->bloques[i] = new Bloque(*otra.bloques[i]);
+                } else {
+                    this->bloques[i] = nullptr;
+                }
+            }
+        }
+
+        // 5. Copiar SALIDAS
+        if (otra.salidas && otra.numSalidas > 0) {
+            this->capacidadSalidas = otra.capacidadSalidas;
+            this->numSalidas = otra.numSalidas;
+            this->salidas = new Salida*[capacidadSalidas];
+            
+            for (int i = 0; i < numSalidas; i++) {
+                if (otra.salidas[i]) {
+                    // Suponiendo que Salida tiene constructor de copia
+                    this->salidas[i] = new Salida(*otra.salidas[i]);
+                } else {
+                    this->salidas[i] = nullptr;
+                }
+            }
+        }
+
+        // 6. Copiar PORTALES
+        if (otra.portales && otra.numPortales > 0) {
+            this->capacidadPortales = otra.capacidadPortales;
+            this->numPortales = otra.numPortales;
+            this->portales = new Portal*[capacidadPortales];
+            
+            for (int i = 0; i < numPortales; i++) {
+                if (otra.portales[i]) {
+                    // Suponiendo que Portal tiene constructor de copia
+                    this->portales[i] = new Portal(*otra.portales[i]);
+                } else {
+                    this->portales[i] = nullptr;
+                }
+            }
+        }
+    }
+    return *this;
+}
+
 void Tablero::liberarMemoria() {
     if (matriz) delete[] matriz;
     if (matrizContigua) delete[] matrizContigua;
@@ -249,24 +337,34 @@ Portal* Tablero::getPortalEn(int x, int y) const {
     return nullptr; // No hay portal en esa coordenada
 }
 
-bool Tablero::comprobarMeta(int idBloque, int x, int y) const {
-    // 1. Buscar el bloque por ID
-    Bloque* b = nullptr;
-    for(int i = 0; i < numBloques; i++) {
-        if(bloques[i]->getId() == idBloque) { 
-            b = bloques[i]; 
-            break; 
+bool Tablero::comprobarMeta(int idxBloque, int x, int y) const {
+    // 1. Validación de seguridad
+    if (idxBloque < 0 || idxBloque >= numBloques) return false;
+    Bloque* b = bloques[idxBloque]; // Usamos el índice directamente
+    
+    // 2. Recorrer la geometría del bloque en su posición tentativa (x, y)
+    for (int rY = 0; rY < b->getAltoGeo(); rY++) {
+        for (int rX = 0; rX < b->getAnchoGeo(); rX++) {
+            // Solo revisamos si la celda de la pieza existe (es 1)
+            if (b->getGeometria(rY, rX)) {
+                int tx = x + rX;
+                int ty = y + rY;
+
+                // 3. Buscar si hay una salida en esta celda específica
+                Salida* s = getSalidaEn(tx, ty);
+                
+                if (s != nullptr) {
+                    // 4. Validar coincidencia de color (Case Insensitive)
+                    char colorS = (char)tolower(s->getColor());
+                    char colorB = (char)tolower(b->getColor());
+
+                    if (colorS == colorB) {
+                        // ¡ENCONTRADO! El bloque toca una salida de su color
+                        return true;
+                    }
+                }
+            }
         }
-    }
-    
-    // 2. Buscar salida en esa posición
-    Salida* s = getSalidaEn(x, y);
-    
-    // 3. Validar coincidencia de color (Case Insensitive)
-    if (s != nullptr && b != nullptr) {
-        char colorS = (char)tolower(s->getColor());
-        char colorB = (char)tolower(b->getColor());
-        return (colorS == colorB);
     }
     
     return false;

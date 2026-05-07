@@ -91,6 +91,7 @@ bool Bloque::getGeometria(int fila, int col) const {
  * si se encontrara en la posición (bX, bY).
  */
 bool Bloque::ocupaCelda(int tx, int ty, int bX, int bY) const {
+    if (!geometria) return false; // Protección contra puntero nulo    
     // 1. Calcular coordenadas relativas usando los parámetros pasados
     int relX = tx - bX;
     int relY = ty - bY;
@@ -121,7 +122,7 @@ void Bloque::revelarColor() {
     }
 }
 void Bloque::setGeometria(int fila, int col, bool ocupa) {
-    if (geometria != nullptr) {
+    if (geometria != nullptr && fila >= 0 && fila < altoGeo && col >= 0 && col < anchoGeo) {
         geometria[fila * anchoGeo + col] = ocupa;
     }
 }

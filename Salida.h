@@ -24,6 +24,11 @@ public:
     Salida(char color, int x, int y, int direccionX, int direccionY, 
            int longitudInicial, int longitudFinal, int pasoCambio);
 
+    // Regla de los Tres: Constructor de Copia, Operador de Asignación, Destructor
+    Salida(const Salida& otro);
+    Salida& operator=(const Salida& otro);
+    ~Salida() {} // Destructor trivial (no hay memoria dinámica)
+
     // --- Getters Constantes (Inline para eficiencia en el Solver) ---
     inline char getColor() const { return color; }
     inline int getX() const      { return x; }
