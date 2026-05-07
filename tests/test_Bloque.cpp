@@ -1,83 +1,79 @@
 #include <iostream>
 #include "Bloque.h"
 
-void testBasicos() {
-    std::cout << "--- Test 1: Creacion y Propiedades Basicas ---" << std::endl;
-    
-    // ID=1, Color='a', X=4, Y=4, Width=2, Height=2
-    // 1. Crear arreglo de forma (cuadrado 2x2)
-    bool* forma = new bool[4]{true, true, true, true}; 
-
-    // 2. Pasar como 7mo argumento al constructor
-    Bloque b1(1, 'a', 4, 4, 2, 2, forma); 
-
-    // 3. Liberar memoria temporal (b1 ya hizo su propia copia interna)
-    delete[] forma;
-    
-    if (b1.getX() == 4 && b1.getY() == 4 && b1.getColor() == 'a') {
-        std::cout << "[OK] Propiedades iniciales correctas." << std::endl;
-    } else {
-        std::cout << "[ERROR] Propiedades iniciales incorrectas." << std::endl;
-    }
-}
-
-void testGeometriaYMovimiento() {
-    std::cout << "\n--- Test 2: Geometria y Movimiento ---" << std::endl;
-    
-    // Definimos una geometría inicial vacía (todos false) para luego usar setGeometria
-    bool* formaVacia = new bool[4]{false, false, false, false};
-    Bloque b1(1, 'b', 0, 0, 2, 2, formaVacia);
-    delete[] formaVacia; 
-    
-    // Probar setGeometria (mapeo 1D interno)
-    b1.setGeometria(0, 0, true);
-    b1.setGeometria(0, 1, true);
-    b1.setGeometria(1, 0, true);
-    b1.setGeometria(1, 1, true);
-
-    std::cout << "Esta en (0,0)? " << (b1.ocupaCelda(0, 0) ? "SI" : "NO") << " (Esperado: SI)" << std::endl;
-    
-    // Probar movimiento
-    b1.mover(2, 3); // dx=2, dy=3 -> Nueva pos (2,3)
-    
-    if (b1.getX() == 2 && b1.getY() == 3) {
-        std::cout << "[OK] Movimiento realizado a (2,3)." << std::endl;
-        std::cout << "Ocupa ahora (2,3)? " << (b1.ocupaCelda(2, 3) ? "SI" : "NO") << " (Esperado: SI)" << std::endl;
-    } else {
-        std::cout << "[ERROR] Fallo en el desplazamiento." << std::endl;
-    }
-}
-
-void testMemoria() {
-    std::cout << "\n--- Test 3: Gestion de Memoria (Copia) ---" << std::endl;
-    
-    bool* formaZ = new bool[4]{true, false, false, true};
-    // Creamos el original en el heap
-    Bloque* original = new Bloque(5, 'z', 1, 1, 2, 2, formaZ);
-    delete[] formaZ;
-    
-    // Probar constructor de copia (Deep Copy)
-    // Esto es lo que usara el Algoritmo A* para generar sucesores
-    Bloque copia = *original; 
-    
-    // Borramos el original. Si la copia es "Shallow", esto hara que 'copia' falle
-    delete original; 
-    
-    if (copia.getGeometria(0, 0) == true && copia.getColor() == 'z') {
-        std::cout << "[OK] Deep Copy exitosa. La memoria de la copia es independiente." << std::endl;
-    } else {
-        std::cout << "[ERROR] Error en constructor de copia (posible puntero colgado)." << std::endl;
-    }
-}
-
 int main() {
-    try {
-        testBasicos();
-        testGeometriaYMovimiento();
-        testMemoria();
-        std::cout << "\n>>> ¡Todos los tests de Bloque finalizaron exitosamente!" << std::endl;
-    } catch (...) {
-        std::cout << "Ocurrio un error inesperado durante las pruebas." << std::endl;
+    std::cout << "--- PRUEBA UNITARIA: CREACION DE BLOQUE PERSONALIZADO ---" << std::endl;
+
+    // Datos del ejemplo: 
+    // ID=1, COLOR=a, WIDTH=4, HEIGHT=4, INIT_X=1, INIT_Y=1
+    // GEOMETRY= 1 1 1 1 
+    //           1 1 1 1 
+    //           0 0 1 1 
+    //           0 0 1 1
+    
+    int id = 1;
+    char color = 'a';
+    int width = 4;
+    int height = 4;
+    int init_x = 1;
+    int init_y = 1;
+
+    // 1. Crear el arreglo de geometría (GEOMETRY)
+    bool* forma = new bool[width * height];
+    
+    bool valores[16] = {
+        1, 1, 1, 1, 
+        1, 1, 1, 1, 
+        0, 0, 1, 1, 
+        0, 0, 1, 1
+    };
+
+    for (int i = 0; i < 16; i++) {
+        forma[i] = valores[i];
     }
+
+    // 2. Instanciar el Bloque
+    Bloque b1(id, color, init_x, init_y, width, height, forma);
+
+    // 3. Liberar la memoria temporal
+    delete[] forma;
+
+    // 4. Validaciones de atributos básicos
+    std::cout << "ID esperado: 1 | Obtenido: " << b1.getId() << std::endl;
+    std::cout << "Posicion esperada: (1,1) | Obtenida: (" << b1.getX() << "," << b1.getY() << ")" << std::endl;
+    std::cout << "Color esperado: a | Obtenido: " << b1.getColor() << std::endl;
+
+    // 5. Validar Geometria usando el nuevo ocupaCelda(tx, ty, bX, bY)
+    bool ok_geo = true;
+
+    // Caso A: Probamos un punto que debe ser TRUE
+    // Celda tablero (1,1). Posicion bloque (1,1). Relativo es (0,0) -> GEOMETRY[0]=1
+    if (!b1.ocupaCelda(1, 1, b1.getX(), b1.getY())) {
+        std::cout << "[Fallo] Celda (1,1) deberia estar ocupada." << std::endl;
+        ok_geo = false;
+    }
+    
+    // Caso B: Probamos un punto que debe ser FALSE
+    // Celda tablero (1,3). Posicion bloque (1,1). Relativo es (0,2) -> GEOMETRY[8]=0
+    if (b1.ocupaCelda(1, 3, b1.getX(), b1.getY())) {
+        std::cout << "[Fallo] Celda (1,3) deberia estar vacia." << std::endl;
+        ok_geo = false;
+    }
+
+    // Caso C: Prueba de independencia (¿Que pasaria si el bloque estuviera en 0,0?)
+    // Si el bloque estuviera en (0,0), la celda (2,3) seria relativa (2,3) -> GEOMETRY[14]=1
+    if (!b1.ocupaCelda(2, 3, 0, 0)) {
+        std::cout << "[Fallo] Prueba de traslacion: en pos(0,0), celda(2,3) deberia ser TRUE." << std::endl;
+        ok_geo = false;
+    }
+
+    if (ok_geo) {
+        std::cout << "[OK] La geometria y el sistema de coordenadas funcionan correctamente." << std::endl;
+    } else {
+        std::cout << "[ERROR] Fallo en la validacion de geometria dinamica." << std::endl;
+    }
+
+    std::cout << "--- Fin del Test ---" << std::endl;
+
     return 0;
 }

@@ -1,13 +1,17 @@
 #include <iostream>
-#include <vector>
+// Eliminado <vector> para cumplir con la regla de No STL
 #include "Tablero.h"
 #include "Movimiento.h"
 #include "State.h"
 #include "Bloque.h"
 #include "Salida.h"
-#include "Portal.h" // Asegúrate de incluir el header de Portal
+#include "Portal.h" 
 
-// Función auxiliar para crear una geometría simple de 1x1
+/**
+ * Función auxiliar para crear una geometría simple de 1x1.
+ * En un entorno real, Bloque debería encargarse de su propia memoria,
+ * pero para el test lo manejamos así.
+ */
 bool* crearGeoSimple() {
     bool* g = new bool[1];
     g[0] = true;
@@ -23,20 +27,21 @@ void test_colision_bloques() {
     bool* geo1 = crearGeoSimple();
     bool* geo2 = crearGeoSimple();
 
+    // ID, Color, X, Y, W, H, Geo
     Bloque* b1 = new Bloque(1, 'A', 1, 1, 1, 1, geo1); 
     Bloque* b2 = new Bloque(2, 'B', 2, 1, 1, 1, geo2); 
     
     t.agregarBloque(b1);
     t.agregarBloque(b2);
 
+    // Definimos el estado inicial
     PosBloque* pos = new PosBloque[2];
     pos[0] = {1, 1, true};
     pos[1] = {2, 1, true};
     State* s_inicial = new State(2, pos, 0, 0, nullptr, "Inicial");
 
-    Movimiento arbitro;
-
-    State* s_fallido = arbitro.ejecutar(0, Direccion::R, s_inicial, &t);
+    // Intentar mover bloque 0 (A) a la derecha (hacia la posición del bloque B)
+    State* s_fallido = Movimiento::ejecutar(0, Direccion::R, s_inicial, &t);
     
     if (s_fallido == nullptr) {
         std::cout << "[OK] Movimiento bloqueado: A no pudo atravesar a B." << std::endl;
@@ -47,6 +52,7 @@ void test_colision_bloques() {
 
     delete s_inicial;
     delete[] pos;
+    // Nota: El destructor de Tablero debería liberar b1 y b2 si así lo diseñaste.
 }
 
 void test_meta_desactivacion() {
@@ -59,21 +65,22 @@ void test_meta_desactivacion() {
     Bloque* b1 = new Bloque(1, 'A', 1, 1, 1, 1, geoA);
     t.agregarBloque(b1);
     
-    Salida* s1 = new Salida('A', 2, 1, 0, 0, 0, 0, 0);
+    // Ajustar constructor de Salida según tu Tablero.h
+    // COLOR, X, Y, ORIENTATION, LI, LF, STEP
+    Salida* s1 = new Salida('A', 2, 1, 'V', 1, 1, 0);
     t.agregarSalida(s1);
 
     PosBloque* pos = new PosBloque[1];
     pos[0] = {1, 1, true};
     State* s_inicial = new State(1, pos, 0, 0, nullptr, "Inicial");
 
-    Movimiento arbitro;
+    // Movimiento al este donde está la salida
+    State* s_meta = Movimiento::ejecutar(0, Direccion::R, s_inicial, &t);
 
-    State* s_meta = arbitro.ejecutar(0, Direccion::R, s_inicial, &t);
-
-    if (s_meta != nullptr && s_meta->getPosiciones()[0].activo == false) {
+    if (s_meta != nullptr && s_meta->getPosicion(0).activo == false) {
         std::cout << "[OK] El bloque se desactivo al llegar a la meta." << std::endl;
     } else {
-        std::cout << "[ERROR] El bloque sigue activo o no se genero el estado." << std::endl;
+        std::cout << "[ERROR] El bloque sigue activo o no se genero el estado correctamente." << std::endl;
     }
 
     delete s_inicial;
@@ -81,9 +88,6 @@ void test_meta_desactivacion() {
     delete[] pos;
 }
 
-/**
- * NUEVA PRUEBA: TEST DEL PORTAL
- */
 void test_portal_color() {
     std::cout << "\nEjecutando: Test de filtro de Portal..." << std::endl;
     
@@ -91,12 +95,12 @@ void test_portal_color() {
     t.setDimensiones(10, 10);
     
     bool* geoA = crearGeoSimple();
-    // Bloque 'A' en (1, 1)
+    // Bloque 'A' (Rojo/id 1)
     Bloque* b1 = new Bloque(1, 'A', 1, 1, 1, 1, geoA);
     t.agregarBloque(b1);
     
-    // Portal en (2, 1). 
-    // Argumentos: x=2, y=1, p=0 (id/tipo), ori='B' (color azul)
+    // Portal de color 'B' (Azul) en el camino (2, 1)
+    // Constructor asume: X, Y, Paso_o_ID, Color
     Portal* p1 = new Portal(2, 1, 0, 'B'); 
     t.agregarPortal(p1);
 
@@ -104,10 +108,8 @@ void test_portal_color() {
     pos[0] = {1, 1, true};
     State* s_inicial = new State(1, pos, 0, 0, nullptr, "Inicial");
 
-    Movimiento arbitro;
-
-    // Intentar mover hacia la derecha (donde está el portal 'B')
-    State* s_resultado = arbitro.ejecutar(0, Direccion::R, s_inicial, &t);
+    // Bloque A intenta entrar a Portal B -> Debe retornar nullptr
+    State* s_resultado = Movimiento::ejecutar(0, Direccion::R, s_inicial, &t);
 
     if (s_resultado == nullptr) {
         std::cout << "[OK] Portal bloqueado: Bloque A rebotó en Portal B correctamente." << std::endl;
@@ -121,10 +123,12 @@ void test_portal_color() {
 }
 
 int main() {
-    std::cout << "--- PRUEBAS UNITARIAS: CLASE MOVIMIENTO ---" << std::endl;
+    std::cout << "--- PRUEBAS UNITARIAS: SISTEMA DE MOVIMIENTO ---" << std::endl;
+    
     test_colision_bloques();
     test_meta_desactivacion();
-    test_portal_color(); // Llamada a la nueva prueba
-    std::cout << "------------------------------------------" << std::endl;
+    test_portal_color();
+    
+    std::cout << "-----------------------------------------------" << std::endl;
     return 0;
 }

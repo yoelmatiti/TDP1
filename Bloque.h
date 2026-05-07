@@ -26,7 +26,7 @@ public:
 
     // Métodos de lógica
     void mover(int dx, int dy);
-    bool ocupaCelda(int tx, int ty) const;
+    bool ocupaCelda(int tx, int ty, int bX, int bY) const;
     char getColorVisual() const; // Retorna '?' si es incógnito, o el color real si no
     void revelarColor();
     bool getEsIncognito() const { return esIncognito; }

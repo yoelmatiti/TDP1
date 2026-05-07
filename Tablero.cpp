@@ -117,24 +117,22 @@ void Tablero::agregarPortal(Portal* p) {
 // ============================================================
 // 3. RENDERIZADO (CORREGIDO Y SIN STL)
 // ============================================================
-
 void Tablero::actualizarDesdeEstado(State* s) {
     if (!s) return;
-    PosBloque* nuevasPos = s->getPosiciones();
-    int nS = s->getNumBloques();
-
-    // 1. Limpiar solo lo que NO es pared ('#') o Portal (Letras de color de pared)
-    // Pero es más seguro limpiar todo y redibujar estáticos para evitar "fantasmas"
+    
+    // 1. LIMPIEZA TOTAL: Borrar rastros de bloques anteriores
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-            // Nota: Si tienes paredes estáticas guardadas en una matriz base, 
-            // aquí deberías restaurar desde esa base. 
-            // Si no, solo limpiamos lo que no es '#'
-            if (matriz[i][j] != '#') matriz[i][j] = ' ';
+            // Mantenemos solo los muros fijos
+            if (matriz[i][j] != '#') {
+                matriz[i][j] = ' ';
+            }
         }
     }
 
-    // 2. Redibujar Salidas (Minúsculas)
+    // 2. CAPA DE INFRAESTRUCTURA (Dibujado antes que los bloques)
+    
+    // 2.1 Salidas (Minúsculas estáticas)
     for (int i = 0; i < numSalidas; i++) {
         Salida* sal = salidas[i];
         if (enLimites(sal->getX(), sal->getY())) {
@@ -142,25 +140,46 @@ void Tablero::actualizarDesdeEstado(State* s) {
         }
     }
 
-    // 3. Redibujar Bloques (Mayúsculas)
+    // 2.2 Portales DINÁMICOS (Cambian según el tiempo 'g')
+    for (int i = 0; i < numPortales; i++) {
+        Portal* p = portales[i];
+        if (enLimites(p->getX(), p->getY())) {
+            // Se usa s->getG() para obtener el paso actual del Solver
+            // El portal devuelve el color (carácter) que le corresponde en ese paso
+            matriz[p->getY()][p->getX()] = p->getColorActual(s->getG());
+        }
+    }
+
+    // 3. CAPA DE ACTORES (Bloques con geometría compleja)
     this->bloquesRestantes = 0;
+    int nS = s->getNumBloques();
+
     for (int i = 0; i < numBloques && i < nS; i++) {
         Bloque* b = bloques[i];
-        b->setX(nuevasPos[i].x);
-        b->setY(nuevasPos[i].y);
-        b->setActivo(nuevasPos[i].activo);
+        
+        // Sincronizar coordenadas del objeto Bloque con el Estado lógico
+        PosBloque p = s->getPosicion(i); 
+        b->setX(p.x);
+        b->setY(p.y);
+        b->setActivo(p.activo);
 
+        // Solo dibujamos si el bloque NO ha salido del tablero (activo == true)
         if (b->estaActivo()) {
             this->bloquesRestantes++;
             char colorMayus = (char)toupper(b->getColor());
             
-            // Dibujar según geometría del bloque
+            // Renderizado por Geometría: recorre el ancho y alto definido en el .txt
             for (int rY = 0; rY < b->getAltoGeo(); rY++) {
                 for (int rX = 0; rX < b->getAnchoGeo(); rX++) {
-                    if (b->getGeometria(rY, rX)) {
+                    // Si la celda de la matriz de geometría es 1, se pinta
+                    if (b->getGeometria(rY, rX)) { 
                         int ty = b->getY() + rY;
                         int tx = b->getX() + rX;
-                        if (enLimites(tx, ty)) matriz[ty][tx] = colorMayus;
+                        
+                        if (enLimites(tx, ty)) {
+                            // El bloque se dibuja sobre la salida o el portal
+                            matriz[ty][tx] = colorMayus;
+                        }
                     }
                 }
             }

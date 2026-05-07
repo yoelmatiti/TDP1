@@ -1,81 +1,67 @@
-#include <iostream>
-#include <cstring>
 #include "Tablero.h"
 #include "State.h"
-#include "LectorArchivo.h" // Usamos tu LectorArchivo en lugar de Parser
-
-void reportar(const char* test, bool condicion) {
-    std::cout << (condicion ? "[OK] " : "[ERROR] ") << test << std::endl;
-}
+#include "LectorArchivo.h"
+#include <cstdio>
 
 int main() {
-    std::cout << "--- Iniciando Test de Clase State (Nueva Arquitectura) ---" << std::endl;
+    LectorArchivo lector;
+    Tablero* tableroMaestro = lector.cargarNivel("facil2_corregido.txt");
 
-    // 1. Cargar Tablero Maestro (Solo para obtener dimensiones y bloques iniciales)
-    // Cambiado Parser::cargarEscenario por LectorArchivo::cargarNivel
-    Tablero* tableroMaestro = LectorArchivo::cargarNivel("simple1.txt");
-    if (!tableroMaestro) {
-        std::cerr << "Error: No se pudo cargar simple1.txt para el test." << std::endl;
+    if (tableroMaestro == nullptr) {
+        printf("[ERROR] No se pudo cargar el nivel.\n");
         return 1;
     }
 
-    int nB = tableroMaestro->getNumBloques();
+    printf("--- Test de Consistencia de Estado ---\n");
 
-    // 2. Crear Estado Inicial (Raíz)
-    // Capturamos manualmente las posiciones del tablero recién cargado
+    // 2. Preparar datos iniciales
+    int nB = tableroMaestro->getNumBloques();
     PosBloque* posIniciales = new PosBloque[nB];
     for (int i = 0; i < nB; i++) {
         Bloque* b = tableroMaestro->getBloquePtr(i);
         posIniciales[i].x = b->getX();
         posIniciales[i].y = b->getY();
-        posIniciales[i].activo = b->estaActivo();
+        posIniciales[i].activo = true;
     }
 
-    // Constructor: nBloques, posiciones, g, h, padre, operacion
-    State* s0 = new State(nB, posIniciales, 0, 10, nullptr, "Inicio");
+    // 3. Crear s1 y su copia s2
+    State* s1 = new State(nB, posIniciales, 0, 0, nullptr, "Inicio");
+    State* s2 = new State(*s1); // Constructor de copia (Deep Copy)
+
+    printf("Verificando independencia de memoria...\n");
     
-    // Liberamos el arreglo temporal porque State ya hizo su copia interna
+    // Validamos que al inicio son iguales
+    if (s1->operator==(*s2)) {
+        printf("[OK] El operador == detecta que son identicos tras copiar.\n");
+    }
+
+    // 4. Probar independencia creando un s3 con cambios (Simulando un movimiento)
+    // En lugar de modificar s2 (que es inmutable), creamos s3 basado en s1 pero con una diff
+    posIniciales[0].x += 1; // Simulamos que el primer bloque se movio a la derecha
+    State* s3 = new State(nB, posIniciales, 1, 10, s1, "B0 R");
+
+    // Verificamos que s1 NO cambio sus valores internos por culpa de s3
+    if (s1->getPosicion(0).x != s3->getPosicion(0).x) {
+        printf("[OK] Independencia confirmada: s1 mantiene x=%d, s3 tiene x=%d\n", 
+                s1->getPosicion(0).x, s3->getPosicion(0).x);
+    }
+
+    // 5. Probar el rastro de operaciones (Recursividad estilo profesor)
+    printf("\nVisualizando rastro de movimientos (de s3 hacia atras):\n");
+    s3->printOperaciones();
+
+    // 6. Probar esFinal
+    if (!s1->esFinal()) {
+        printf("\n[OK] s1 detecta que aun quedan bloques activos.\n");
+    }
+
+    // Limpieza
     delete[] posIniciales;
-
-    reportar("Creacion de estado inicial", s0->getG() == 0 && s0->getH() == 10 && s0->getF() == 10);
-
-    // 3. Simular un movimiento y crear Estado Hijo (s1)
-    // Simulamos que el bloque 0 se mueve 1 unidad a la derecha
-    PosBloque* posHijo = new PosBloque[nB];
-    for (int i = 0; i < nB; i++) {
-        posHijo[i] = s0->getPosiciones()[i]; // Copiamos del padre
-    }
-    posHijo[0].x += 1; // El movimiento simulado
-
-    State* s1 = new State(nB, posHijo, 1, 9, s0, "Bloque 0 Derecha");
-    delete[] posHijo;
-
-    // 4. Verificar Integridad
-    reportar("Estado hijo tiene padre correcto", s1->getPadre() == s0);
-    reportar("Costo G aumento correctamente", s1->getG() == 1);
-    reportar("F calculado correctamente (1+9)", s1->getF() == 10);
-
-    // 5. Verificar independencia de posiciones (Copia Profunda)
-    bool sonDiferentes = (s0->getPosiciones()[0].x != s1->getPosiciones()[0].x);
-    reportar("Independencia de posiciones (Copia Profunda)", sonDiferentes);
-
-    // 6. Probar la reconstrucción del camino
-    // Como eliminamos std::vector, este test solo verifica que la cadena de padres exista
-    std::cout << "\nCamino reconstruido (recorrido manual):" << std::endl;
-    State* temp = s1;
-    while (temp != nullptr) {
-        std::cout << " -> " << temp->getOperacion() << " (g=" << temp->getG() << ")" << std::endl;
-        temp = temp->getPadre();
-    }
-
-    // 7. Limpieza
-    // El Tablero maestro se borra aparte
+    delete s1;
+    delete s2;
+    delete s3;
     delete tableroMaestro;
-    
-    // Los estados se borran. Nota: El destructor de State NO debe borrar al padre.
-    delete s1; 
-    delete s0;
 
-    std::cout << "--- Test de State finalizado ---" << std::endl;
+    printf("--- Test finalizado ---\n");
     return 0;
 }

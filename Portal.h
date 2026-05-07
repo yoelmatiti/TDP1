@@ -37,11 +37,11 @@ public:
 
     // --- Lógica de Validación de Paso ---
     // Verifica color y estado de pared ('#')
-    bool puedePasar(char colorBloque, int tiempoG) const;
+   
     
     // Verifica si el tamaño del bloque es apto para la orientación de la compuerta
     bool verificarDimension(int anchoBloque, int altoBloque) const;
-
+    bool puedePasar(char colorBloque, int paso) const;
     // --- Getters Simples ---
     int getX() const;
     int getY() const;

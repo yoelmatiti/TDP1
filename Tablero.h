@@ -106,6 +106,12 @@ public:
     Salida* getSalidaPtr(int i) const;
     Portal* getPortalPtr(int i) const;
 
+    bool esPared(int f, int c) const {
+    // Retorna true si la celda contiene '#'
+    if (f < 0 || f >= height || c < 0 || c >= width) return false;
+    return matriz[f][c] == '#'; 
+    }
+
     // --- Visualización ---
     // Imprime el tablero en consola usando printf para cumplir "Sin STL"
     void imprimir();

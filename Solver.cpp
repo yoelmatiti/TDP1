@@ -84,9 +84,9 @@ PosBloque* Solver::capturarPosicionesActuales() {
 
 bool Solver::esEstadoFinal(State* s) {
     if (!s) return false;
-    PosBloque* posiciones = s->getPosiciones();
     for (int i = 0; i < s->getNumBloques(); i++) {
-        if (posiciones[i].activo) return false;
+        PosBloque p = s->getPosicion(i);
+        if (p.activo) return false;
     }
     return true;
 }
@@ -98,7 +98,8 @@ void Solver::expandirEstado(State* actual) {
 
     for (int i = 0; i < nB; i++) {
         // Solo mover bloques que aún están en el tablero
-        if (!actual->getPosiciones()[i].activo) continue;
+        PosBloque p = actual->getPosicion(i);
+        if (!p.activo) continue;
 
         for (int dIdx = 0; dIdx < 4; dIdx++) {
             Direccion d = direcciones[dIdx];
@@ -126,10 +127,10 @@ int Solver::calcularHeuristica(State* s) {
 
     int hTotal = 0;
     int nB = s->getNumBloques();
-    PosBloque* posiciones = s->getPosiciones();
 
     for (int i = 0; i < nB; i++) {
-        if (!posiciones[i].activo) continue;
+        PosBloque p = s->getPosicion(i);
+        if (!p.activo) continue;
 
         // Obtenemos el color del bloque original
         char colorB = (char)tolower(tableroMaestro->getBloquePtr(i)->getColor());
@@ -141,8 +142,8 @@ int Solver::calcularHeuristica(State* s) {
             Salida* sal = tableroMaestro->getSalidaPtr(j);
             if (sal && (char)tolower(sal->getColor()) == colorB) {
                 // Distancia Manhattan: |x1-x2| + |y1-y2|
-                int dx = posiciones[i].x - sal->getX();
-                int dy = posiciones[i].y - sal->getY();
+                int dx = p.x - sal->getX();
+                int dy = p.y - sal->getY();
                 if (dx < 0) dx = -dx;
                 if (dy < 0) dy = -dy;
                 

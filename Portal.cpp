@@ -1,4 +1,5 @@
 #include "Portal.h"
+#include <cctype>
 
 Portal::Portal() : x(0), y(0), orientacion('V'), cicloColores(nullptr), numColores(0), pasoCambio(0) {}
 
@@ -44,20 +45,6 @@ char Portal::getColorActual(int tiempoG) const {
 }
 
 /**
- * REGLA: Lógica de Paso (Color y Estado Pared)
- * Verifica si el bloque puede interactuar con la compuerta.
- */
-bool Portal::puedePasar(char colorBloque, int tiempoG) const {
-    char colorPort = getColorActual(tiempoG);
-    
-    // Si el ciclo actual es '#', funciona como pared infranqueable
-    if (colorPort == '#') return false;
-
-    // El bloque pasa si el color coincide o si es el comodín '?'
-    return (colorBloque == colorPort || colorBloque == '?');
-}
-
-/**
  * REGLA: Verificación de Tamaño y Orientación
  * Verifica si las dimensiones del bloque son compatibles con la apertura de la compuerta.
  */
@@ -82,9 +69,17 @@ void Portal::agregarColorAlCiclo(char c) {
     numColores++;
 }
 
+bool Portal::puedePasar(char colorBloque, int paso) const {
+    if (colorBloque == '?') return true; // Comodín siempre pasa
+
+    char colorPortal = getColorActual(paso);
+    
+    // Convertimos ambos a minúsculas antes de comparar
+    return std::tolower((unsigned char)colorBloque) == std::tolower((unsigned char)colorPortal);
+}
+
 // Getters básicos
 int Portal::getX() const { return x; }
 int Portal::getY() const { return y; }
 char Portal::getOrientacion() const { return orientacion; }
-char Portal::getColor() const { return getColorActual(0);
-}
+char Portal::getColor() const { return getColorActual(0); }

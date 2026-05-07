@@ -24,6 +24,11 @@ Bloque::Bloque(int id, char _color, int _x, int _y, int _w, int _h, bool* _geo)
         for (int i = 0; i < tam; ++i) {
             this->geometria[i] = _geo[i]; 
         }
+    } else {
+        // Inicializar a false si no se proporciona geometría
+        for (int i = 0; i < tam; ++i) {
+            this->geometria[i] = false;
+        }
     }
 }
 
@@ -79,20 +84,25 @@ bool Bloque::getGeometria(int fila, int col) const {
     return false;
 }
 
-// Determina si el bloque está presente en una celda específica del tablero
-bool Bloque::ocupaCelda(int tx, int ty) const {
-    // 1. Calcular coordenadas relativas al origen del bloque
-    int relX = tx - this->x;
-    int relY = ty - this->y;
+// Bloque.cpp
 
-    // 2. Verificar si está dentro de la caja (bounding box) del bloque
-    if (relX >= 0 && relX < anchoGeo && relY >= 0 && relY < altoGeo) {
-        // 3. Acceso a matriz plana: (fila * ancho) + columna
-        // Esto corrige el error de "invalid types"
-        return geometria[relY * anchoGeo + relX];
+/**
+ * Determina si el bloque ocuparía una celda específica (tx, ty) 
+ * si se encontrara en la posición (bX, bY).
+ */
+bool Bloque::ocupaCelda(int tx, int ty, int bX, int bY) const {
+    // 1. Calcular coordenadas relativas usando los parámetros pasados
+    int relX = tx - bX;
+    int relY = ty - bY;
+
+    // 2. Verificar si está dentro de los límites del "cuadrado" del bloque
+    if (relX < 0 || relX >= anchoGeo || relY < 0 || relY >= altoGeo) {
+        return false; 
     }
-    
-    return false;
+
+    // 3. Retornar el valor de la geometría en el índice calculado
+    // ¡CUIDADO! Asegúrate de que el cálculo del índice sea (Y * ancho + X)
+    return geometria[relY * anchoGeo + relX];
 }
 
 void Bloque::mover(int dx, int dy) {
