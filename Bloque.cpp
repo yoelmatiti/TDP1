@@ -84,8 +84,6 @@ bool Bloque::getGeometria(int fila, int col) const {
     return false;
 }
 
-// Bloque.cpp
-
 /**
  * Determina si el bloque ocuparía una celda específica (tx, ty) 
  * si se encontrara en la posición (bX, bY).

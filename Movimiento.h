@@ -2,9 +2,15 @@
 #define MOVIMIENTO_H
 
 #include "State.h"
-#include "Tablero.h"
 
-
+// En Movimiento.h
+enum class Direccion {
+    U, // Up (Arriba)
+    D, // Down (Abajo)
+    L, // Left (Izquierda)
+    R  // Right (Derecha)
+};
+class Tablero;
 class Movimiento {
 public:
     /**

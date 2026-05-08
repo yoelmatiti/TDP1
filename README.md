@@ -4,7 +4,7 @@ trabajo 1 taller de programacion
 parametrizar
 Estados
 se busca que sea eficiente la tarea, a lo bruto
-hacer clases tablero, bloque, salida, portal
+hacer clases tablero, bloque, salida, compuerta
 cambiar State, significa cambiar test
 hacer clases de operaciones
 hacer clase Background, para la parte estatica

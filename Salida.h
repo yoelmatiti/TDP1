@@ -48,6 +48,7 @@ public:
      * en el turno actual, utilizando cálculo vectorial O(1).
      */
     bool esParteDeSalida(int f, int c, int tiempoG) const;
+    bool bloqueCubreSalida(int anchoB, int altoB) const;
 };
 
 #endif

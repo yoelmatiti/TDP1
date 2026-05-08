@@ -12,7 +12,7 @@ Tablero::Tablero()
       matrizContigua(nullptr), matriz(nullptr),
       bloques(nullptr), numBloques(0), capacidadBloques(0),
       salidas(nullptr), numSalidas(0), capacidadSalidas(0),
-      portales(nullptr), numPortales(0), capacidadPortales(0)
+      compuertas(nullptr), numCompuertas(0), capacidadCompuertas(0)
 {}
 
 Tablero::~Tablero() {
@@ -25,7 +25,7 @@ Tablero::Tablero(const Tablero& otra)
       matrizContigua(nullptr), matriz(nullptr),
       bloques(nullptr), numBloques(0), capacidadBloques(0),
       salidas(nullptr), numSalidas(0), capacidadSalidas(0),
-      portales(nullptr), numPortales(0), capacidadPortales(0)
+      compuertas(nullptr), numCompuertas(0), capacidadCompuertas(0)
 {
     *this = otra;
 }
@@ -88,18 +88,18 @@ Tablero& Tablero::operator=(const Tablero& otra) {
             }
         }
 
-        // 6. Copiar PORTALES
-        if (otra.portales && otra.numPortales > 0) {
-            this->capacidadPortales = otra.capacidadPortales;
-            this->numPortales = otra.numPortales;
-            this->portales = new Portal*[capacidadPortales];
+        // 6. Copiar COMPUERTAS
+        if (otra.compuertas && otra.numCompuertas > 0) {
+            this->capacidadCompuertas = otra.capacidadCompuertas;
+            this->numCompuertas = otra.numCompuertas;
+            this->compuertas = new Compuerta*[capacidadCompuertas];
             
-            for (int i = 0; i < numPortales; i++) {
-                if (otra.portales[i]) {
-                    // Suponiendo que Portal tiene constructor de copia
-                    this->portales[i] = new Portal(*otra.portales[i]);
+            for (int i = 0; i < numCompuertas; i++) {
+                if (otra.compuertas[i]) {
+                    // Suponiendo que Compuerta tiene constructor de copia
+                    this->compuertas[i] = new Compuerta(*otra.compuertas[i]);
                 } else {
-                    this->portales[i] = nullptr;
+                    this->compuertas[i] = nullptr;
                 }
             }
         }
@@ -126,19 +126,19 @@ void Tablero::liberarMemoria() {
         salidas = nullptr;
     }
 
-    if (portales) {
-        for (int i = 0; i < numPortales; i++) if (portales[i]) delete portales[i];
-        delete[] portales;
-        portales = nullptr;
+    if (compuertas) {
+        for (int i = 0; i < numCompuertas; i++) if (compuertas[i]) delete compuertas[i];
+        delete[] compuertas;
+        compuertas = nullptr;
     }
 }
 
-Portal* Tablero::getPortalPtr(int i) const { 
-    return (i >= 0 && i < numPortales) ? portales[i] : nullptr; 
+Compuerta* Tablero::getCompuertaPtr(int i) const { 
+    return (i >= 0 && i < numCompuertas) ? compuertas[i] : nullptr; 
 }
-bool Tablero::esPortal(int x, int y) const {
-    // IMPORTANTE: Debe llamar a getPortalEn con el mismo orden (x, y)
-    return (this->getPortalEn(x, y) != nullptr);
+bool Tablero::esCompuerta(int x, int y) const {
+    // IMPORTANTE: Debe llamar a getCompuertaEn con el mismo orden (x, y)
+    return (this->getCompuertaEn(x, y) != nullptr);
 }
 // ============================================================
 // 2. CONFIGURACIÓN
@@ -188,18 +188,29 @@ void Tablero::agregarSalida(Salida* s) {
     salidas[numSalidas++] = s;
 }
 
-void Tablero::agregarPortal(Portal* p) {
+void Tablero::agregarCompuerta(Compuerta* p) {
     if (!p) return;
-    if (numPortales >= capacidadPortales) {
-        int nuevaCap = (capacidadPortales == 0) ? 5 : capacidadPortales * 2;
-        Portal** nuevo = new Portal*[nuevaCap];
-        for (int i = 0; i < numPortales; i++) nuevo[i] = portales[i];
-        delete[] portales;
-        portales = nuevo;
-        capacidadPortales = nuevaCap;
+    if (numCompuertas >= capacidadCompuertas) {
+        int nuevaCap = (capacidadCompuertas == 0) ? 5 : capacidadCompuertas * 2;
+        Compuerta** nuevo = new Compuerta*[nuevaCap];
+        for (int i = 0; i < numCompuertas; i++) nuevo[i] = compuertas[i];
+        delete[] compuertas;
+        compuertas = nuevo;
+        capacidadCompuertas = nuevaCap;
     }
-    portales[numPortales++] = p;
-    setPared(p->getY(), p->getX(), p->getColor());
+    compuertas[numCompuertas++] = p;
+    
+}
+
+bool Tablero::esObstaculo(int x, int y, int tiempoG, char colorBloque) const {
+    if (!enLimites(x, y)) return true;
+    if (matriz[y][x] == '#') return true;
+
+    Compuerta* cp = getCompuertaEn(x, y);
+    if (cp) {
+        if (!cp->puedePasar(colorBloque, tiempoG)) return true;
+    }
+    return false;
 }
 
 // ============================================================
@@ -220,20 +231,29 @@ void Tablero::actualizarDesdeEstado(State* s) {
 
     // 2. CAPA DE INFRAESTRUCTURA (Dibujado antes que los bloques)
     
-    // 2.1 Salidas (Minúsculas estáticas)
+    
+    // 2.1 Salidas DINÁMICAS
     for (int i = 0; i < numSalidas; i++) {
         Salida* sal = salidas[i];
-        if (enLimites(sal->getX(), sal->getY())) {
-            matriz[sal->getY()][sal->getX()] = (char)tolower(sal->getColor());
+        int L = sal->getLongitudActual(s->getG()); // Usar el tiempo del estado
+        char colorSalida = (char)tolower(sal->getColor());
+        
+        // Dibujar la línea de la salida según su dirección y longitud actual
+        for (int k = 0; k < L; k++) {
+            int tx = sal->getX() + (k * sal->getDx());
+            int ty = sal->getY() + (k * sal->getDy());
+            if (enLimites(tx, ty)) {
+                matriz[ty][tx] = colorSalida;
+            }
         }
     }
 
-    // 2.2 Portales DINÁMICOS (Cambian según el tiempo 'g')
-    for (int i = 0; i < numPortales; i++) {
-        Portal* p = portales[i];
+    // 2.2 Compuertas DINÁMICOS (Cambian según el tiempo 'g')
+    for (int i = 0; i < numCompuertas; i++) {
+        Compuerta* p = compuertas[i];
         if (enLimites(p->getX(), p->getY())) {
             // Se usa s->getG() para obtener el paso actual del Solver
-            // El portal devuelve el color (carácter) que le corresponde en ese paso
+            // El compuerta devuelve el color (carácter) que le corresponde en ese paso
             matriz[p->getY()][p->getX()] = p->getColorActual(s->getG());
         }
     }
@@ -265,7 +285,7 @@ void Tablero::actualizarDesdeEstado(State* s) {
                         int tx = b->getX() + rX;
                         
                         if (enLimites(tx, ty)) {
-                            // El bloque se dibuja sobre la salida o el portal
+                            // El bloque se dibuja sobre la salida o el compuerta
                             matriz[ty][tx] = colorMayus;
                         }
                     }
@@ -322,50 +342,45 @@ bool Tablero::enLimites(int x, int y) const {
 
 Bloque* Tablero::getBloquePtr(int i) const { return (i>=0 && i<numBloques) ? bloques[i] : nullptr; }
 Salida* Tablero::getSalidaPtr(int i) const { return (i>=0 && i<numSalidas) ? salidas[i] : nullptr; }
-// 2. Para obtener un portal sabiendo su ubicación en el mapa (Coordenadas)
+// 2. Para obtener un compuerta sabiendo su ubicación en el mapa (Coordenadas)
 // Este es el que busca Movimiento.cpp
-Portal* Tablero::getPortalEn(int x, int y) const {
-    if (!enLimites(x, y) || portales == nullptr) return nullptr;
+Compuerta* Tablero::getCompuertaEn(int x, int y) const {
+    if (!enLimites(x, y) || compuertas == nullptr) return nullptr;
     
-    for (int i = 0; i < numPortales; i++) {
-        if (portales[i] != nullptr && 
-            portales[i]->getX() == x && 
-            portales[i]->getY() == y) {
-            return portales[i]; // Encontrado
+    for (int i = 0; i < numCompuertas; i++) {
+        if (compuertas[i] != nullptr && 
+            compuertas[i]->getX() == x && 
+            compuertas[i]->getY() == y) {
+            return compuertas[i]; // Encontrado
         }
     }
-    return nullptr; // No hay portal en esa coordenada
+    return nullptr; // No hay compuerta en esa coordenada
 }
 
-bool Tablero::comprobarMeta(int idxBloque, int x, int y) const {
-    // 1. Validación de seguridad
+bool Tablero::comprobarMeta(int idxBloque, int x, int y, int tiempoG) const {
     if (idxBloque < 0 || idxBloque >= numBloques) return false;
-    Bloque* b = bloques[idxBloque]; // Usamos el índice directamente
+    Bloque* b = bloques[idxBloque];
     
-    // 2. Recorrer la geometría del bloque en su posición tentativa (x, y)
+    // El bloque sale si TODAS sus celdas ocupadas están sobre una salida válida
     for (int rY = 0; rY < b->getAltoGeo(); rY++) {
         for (int rX = 0; rX < b->getAnchoGeo(); rX++) {
-            // Solo revisamos si la celda de la pieza existe (es 1)
             if (b->getGeometria(rY, rX)) {
                 int tx = x + rX;
                 int ty = y + rY;
-
-                // 3. Buscar si hay una salida en esta celda específica
-                Salida* s = getSalidaEn(tx, ty);
                 
-                if (s != nullptr) {
-                    // 4. Validar coincidencia de color (Case Insensitive)
-                    char colorS = (char)tolower(s->getColor());
-                    char colorB = (char)tolower(b->getColor());
-
-                    if (colorS == colorB) {
-                        // ¡ENCONTRADO! El bloque toca una salida de su color
-                        return true;
+                bool enSalidaValida = false;
+                for (int i = 0; i < numSalidas; i++) {
+                    // Verificamos: ¿Esta celda es parte de la salida en este tiempo G?
+                    // ¿Y el color coincide?
+                    if (salidas[i]->esParteDeSalida(ty, tx, tiempoG) && 
+                        tolower(salidas[i]->getColor()) == tolower(b->getColor())) {
+                        enSalidaValida = true;
+                        break;
                     }
                 }
+                if (!enSalidaValida) return false; 
             }
         }
     }
-    
-    return false;
+    return true; 
 }

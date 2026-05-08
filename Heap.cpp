@@ -24,7 +24,12 @@ void Heap::redimensionar() {
 }
 
 void Heap::push(State* nuevoEstado) {
-    if (!nuevoEstado) return;
+    // Si el estado es nulo o inválido, ni siquiera entra al Heap
+    if (!nuevoEstado || nuevoEstado->getF() < 0) {
+        if (nuevoEstado) delete nuevoEstado; 
+        return;
+    }
+    
     if (tamano == capacidad) redimensionar();
     
     arreglo[tamano] = nuevoEstado;
@@ -32,9 +37,6 @@ void Heap::push(State* nuevoEstado) {
     tamano++;
 }
 
-/**
- * pop() - Extrae el mínimo con validación de seguridad
- */
 State* Heap::pop() {
     while (tamano > 0) {
         State* raiz = arreglo[0];
@@ -46,11 +48,10 @@ State* Heap::pop() {
         }
 
         // --- VALIDACIÓN DE SEGURIDAD ---
-        // Si el puntero es nulo o apunta a memoria corrupta (f negativo o absurdo)
-        // lo ignoramos y sacamos el siguiente mejor.
-        if (raiz == nullptr || raiz->getF() < 0 || raiz->getF() > 1000000) {
-            // Log opcional para detectar si esto sucede durante el desarrollo
+        if (raiz == nullptr) continue;
 
+        if (raiz->getF() < 0 || raiz->getF() > 1000000) {
+            delete raiz; // ¡CRÍTICO! Si el estado es corrupto, lo borramos antes de seguir
             continue; 
         }
 

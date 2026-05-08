@@ -47,12 +47,26 @@ void test_colision_lineal() {
     printf("PASADO\n");
 }
 
+// Sugerencia para test_colision_lineal o uno nuevo:
+void test_identidad() {
+    Salida s('R', 5, 5, 1, 0, 3, 1, 5);
+    // Verificar que solo acepta bloques rojos
+    char colorBloqueCorrecto = 'R';
+    char colorBloqueIncorrecto = 'B';
+    
+    assert(s.getColor() == colorBloqueCorrecto);
+    assert(s.getColor() != colorBloqueIncorrecto);
+    printf("Test Identidad: PASADO\n");
+}
+
 int main() {
     printf("--- INICIANDO TESTS DE SALIDA (Sin STL) ---\n");
     
     test_constructor();
     test_longitud_dinamica();
     test_colision_lineal();
+    test_identidad();
+
 
     printf("--- TODOS LOS TESTS PASARON CON EXITO ---\n");
     return 0;

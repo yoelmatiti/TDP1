@@ -1,12 +1,14 @@
-#ifndef PORTAL_H
-#define PORTAL_H
+#ifndef Compuerta_H
+#define Compuerta_H
+
+#include "Movimiento.h"
 
 /**
- * Clase Portal (Compuerta Dinámica)
+ * Clase Compuerta (Compuerta Dinámica)
  * Actúa como un filtro en el tablero que permite o bloquea el paso
  * según el color, el tiempo (g) y las dimensiones del bloque.
  */
-class Portal {
+class Compuerta {
 private:
     int x, y;               // Posición en el tablero
     char orientacion;       // 'V' (Vertical) o 'H' (Horizontal)
@@ -17,13 +19,13 @@ private:
 
 public:
     // --- Constructores y Destructor ---
-    Portal();
-    Portal(int _x, int _y, int _p, char _ori);
+    Compuerta();
+    Compuerta(int _x, int _y, int _p, char _ori);
     
     // Regla de los tres (Gestión de memoria profunda)
-    Portal(const Portal& otro);
-    Portal& operator=(const Portal& otro);
-    ~Portal();
+    Compuerta(const Compuerta& otro);
+    Compuerta& operator=(const Compuerta& otro);
+    ~Compuerta();
 
     // --- Lógica de Configuración ---
     void agregarColorAlCiclo(char c);
@@ -46,6 +48,7 @@ public:
     int getX() const;
     int getY() const;
     char getOrientacion() const;
+    void calcularDestino(int bloqueX, int bloqueY, int anchoB, int altoB, Direccion dir, int& outX, int& outY) const;
 };
 
 #endif

@@ -5,7 +5,7 @@
 #include "State.h"
 #include "Bloque.h"
 #include "Salida.h"
-#include "Portal.h" 
+#include "Compuerta.h" 
 
 /**
  * Función auxiliar para crear una geometría simple de 1x1.
@@ -88,8 +88,8 @@ void test_meta_desactivacion() {
     delete[] pos;
 }
 
-void test_portal_color() {
-    std::cout << "\nEjecutando: Test de filtro de Portal..." << std::endl;
+void test_compuerta_color() {
+    std::cout << "\nEjecutando: Test de filtro de Compuerta..." << std::endl;
     
     Tablero t;
     t.setDimensiones(10, 10);
@@ -99,22 +99,22 @@ void test_portal_color() {
     Bloque* b1 = new Bloque(1, 'A', 1, 1, 1, 1, geoA);
     t.agregarBloque(b1);
     
-    // Portal de color 'B' (Azul) en el camino (2, 1)
+    // Compuerta de color 'B' (Azul) en el camino (2, 1)
     // Constructor asume: X, Y, Paso_o_ID, Color
-    Portal* p1 = new Portal(2, 1, 0, 'B'); 
-    t.agregarPortal(p1);
+    Compuerta* p1 = new Compuerta(2, 1, 0, 'B'); 
+    t.agregarCompuerta(p1);
 
     PosBloque* pos = new PosBloque[1];
     pos[0] = {1, 1, true};
     State* s_inicial = new State(1, pos, 0, 0, nullptr, "Inicial");
 
-    // Bloque A intenta entrar a Portal B -> Debe retornar nullptr
+    // Bloque A intenta entrar a Compuerta B -> Debe retornar nullptr
     State* s_resultado = Movimiento::ejecutar(0, Direccion::R, s_inicial, &t);
 
     if (s_resultado == nullptr) {
-        std::cout << "[OK] Portal bloqueado: Bloque A rebotó en Portal B correctamente." << std::endl;
+        std::cout << "[OK] Compuerta bloqueado: Bloque A rebotó en Compuerta B correctamente." << std::endl;
     } else {
-        std::cout << "[ERROR] El bloque A atravesó un portal de color distinto (B)!" << std::endl;
+        std::cout << "[ERROR] El bloque A atravesó un compuerta de color distinto (B)!" << std::endl;
         delete s_resultado;
     }
 
@@ -127,7 +127,7 @@ int main() {
     
     test_colision_bloques();
     test_meta_desactivacion();
-    test_portal_color();
+    test_compuerta_color();
     
     std::cout << "-----------------------------------------------" << std::endl;
     return 0;

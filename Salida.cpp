@@ -86,3 +86,14 @@ bool Salida::esParteDeSalida(int f, int c, int tiempoG) const {
             diffX == pasoK * direccionX && 
             diffY == pasoK * direccionY);
 }
+
+// En Salida.h / Salida.cpp
+bool Salida::bloqueCubreSalida(int anchoB, int altoB) const {
+    // Si la salida es vertical (direccionX == 0), el alto del bloque 
+    // debe ser igual a la longitud de la salida para "taparla" o pasar por ella.
+    // Esto depende de cómo interpretes "coincidir en dimensiones" del PDF.
+    
+    if (direccionX != 0) return altoB == 1; // Salida horizontal, bloque debe tener alto 1
+    if (direccionY != 0) return anchoB == 1; // Salida vertical, bloque debe tener ancho 1
+    return true;
+}

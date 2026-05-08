@@ -3,12 +3,12 @@ CC = g++
 CFLAGS = -Wall -I. -g
 
 # Objetos necesarios [cite: 230, 236]
-OBJS = Bloque.o Heap.o State.o Tablero.o  Portal.o Salida.o TablaHash.o Solver.o Movimiento.o LectorArchivo.o
+OBJS = Bloque.o Heap.o State.o Tablero.o  Compuerta.o Salida.o TablaHash.o Solver.o Movimiento.o LectorArchivo.o
 
 # Ejecutables de test
 TEST_EXES = tests/test_state_exe tests/test_heap_exe tests/test_bloque_exe \
             tests/test_tablero_exe tests/test_hash_exe LectorArchivo.o\
-            tests/test_portal_exe tests/test_mov_exe tests/test_solver_exe
+            tests/test_compuerta_exe tests/test_mov_exe tests/test_solver_exe
 
 # Regla principal 
 all: $(OBJS) $(TEST_EXES)
@@ -18,7 +18,7 @@ all: $(OBJS) $(TEST_EXES)
 # ALIASES (ACCESOS DIRECTOS)
 # ============================================================
 .PHONY: test_state test_heap test_bloque test_tablero \
-     test_hash test_portal test_mov test_lector\
+     test_hash test_compuerta test_mov test_lector\
         test_salida test_solver run_game all_tests
 
 # ============================================================
@@ -49,9 +49,9 @@ test_hash: tests/test_hash_exe
 	@echo Ejecutando test de Tabla Hash...
 	./tests/test_hash_exe
 
-test_portal: tests/test_portal_exe
-	@echo Ejecutando test de Portal...
-	./tests/test_portal_exe
+test_compuerta: tests/test_compuerta_exe
+	@echo Ejecutando test de Compuerta...
+	./tests/test_compuerta_exe
 
 test_mov: tests/test_mov_exe
 	@echo Ejecutando test de Movimiento...
@@ -70,7 +70,7 @@ run_game: cbj_game
 	./cbj_game.exe
 
 # Bonus: Ejecutar absolutamente todos los tests con un solo comando
-all_tests: test_state test_heap test_bloque test_tablero test_hash test_portal test_mov test_solver test_lector
+all_tests: test_state test_heap test_bloque test_tablero test_hash test_compuerta test_mov test_solver test_lector
 
 # ============================================================
 # REGLAS DE COMPILACIÓN (LOS EJECUTABLES REALES)
@@ -88,23 +88,23 @@ tests/test_heap_exe: tests/test_Heap.cpp $(OBJS)
 tests/test_bloque_exe: tests/test_Bloque.cpp Bloque.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-tests/test_tablero_exe: tests/test_Tablero.cpp Bloque.o Tablero.o Portal.o Salida.o  State.o Movimiento.o LectorArchivo.o
+tests/test_tablero_exe: tests/test_Tablero.cpp Bloque.o Tablero.o Compuerta.o Salida.o  State.o Movimiento.o LectorArchivo.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 tests/test_hash_exe: tests/test_TablaHash.cpp $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 
-tests/test_portal_exe: tests/test_Portal.cpp $(OBJS)
+tests/test_compuerta_exe: tests/test_Compuerta.cpp $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 
-tests/test_mov_exe: tests/test_Movimiento.cpp Movimiento.o State.o Tablero.o Bloque.o Salida.o Portal.o
+tests/test_mov_exe: tests/test_Movimiento.cpp Movimiento.o State.o Tablero.o Bloque.o Salida.o Compuerta.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 tests/test_solver_exe: tests/test_Solver.cpp $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 tests/test_salida_exe: tests/test_Salida.cpp Salida.o
 	$(CC) $(CFLAGS) $^ -o $@
-tests/test_lector_exe: tests/test_LectorArchivo.cpp LectorArchivo.o Tablero.o Bloque.o Portal.o Salida.o State.o Movimiento.o
+tests/test_lector_exe: tests/test_LectorArchivo.cpp LectorArchivo.o Tablero.o Bloque.o Compuerta.o Salida.o State.o Movimiento.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 # --- COMPILACIÓN SEPARADA (.o)  ---

@@ -43,7 +43,7 @@ int main() {
     tab->imprimir();
 
     // 4. TEST DE MOVIMIENTO POSIBLE (Hacia abajo - Direccion::D)
-    // En facil2_corregido, el Bloque 0 (ID 1) suele tener espacio debajo.
+ 
     std::cout << "\nTest 3: Movimiento hacia ABAJO (Bloque 0, Direccion::D)" << std::endl;
     State* estadoHijo = Movimiento::ejecutar(0, Direccion::D, estadoInicial, tab);
 

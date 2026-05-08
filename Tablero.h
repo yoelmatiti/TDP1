@@ -3,7 +3,7 @@
 
 #include "Bloque.h"
 #include "Salida.h"
-#include "Portal.h"
+#include "Compuerta.h"
 
 /**
  * Forward Declaration para evitar ciclos de inclusión.
@@ -11,10 +11,7 @@
  */
 class State; 
 
-/**
- * Direcciones de movimiento para los bloques.
- */
-enum class Direccion { U, D, L, R }; 
+
 
 class Tablero {
 private:
@@ -22,7 +19,7 @@ private:
     int pasoActual;
     int bloquesRestantes;
 
-    // Mapa base: Contiene muros '#', espacios ' ' y caracteres de portales.
+    // Mapa base: Contiene muros '#', espacios ' ' y caracteres de compuertas.
     char* matrizContigua;
     char** matriz; 
 
@@ -35,9 +32,9 @@ private:
     int numSalidas;
     int capacidadSalidas;
 
-    Portal** portales;
-    int numPortales;
-    int capacidadPortales;
+    Compuerta** compuertas;
+    int numCompuertas;
+    int capacidadCompuertas;
 
     // Métodos privados de gestión de memoria
     void liberarMemoria();
@@ -60,12 +57,12 @@ public:
     void setPared(int fila, int col, char valor);
     void agregarBloque(Bloque* b);
     void agregarSalida(Salida* s);
-    void agregarPortal(Portal* p);
+    void agregarCompuerta(Compuerta* p);
 
     // --- API de Consulta (Utilizada por Movimiento.cpp y Solver.cpp) ---
     
     /**
-     * Retorna el carácter almacenado en la matriz estática (muros o portales).
+     * Retorna el carácter almacenado en la matriz estática (muros o compuertas).
      */
     char getCeldaEstatica(int x, int y) const;
     
@@ -75,14 +72,14 @@ public:
     Salida* getSalidaEn(int x, int y) const;
     
     /**
-     * Busca y retorna un portal en coordenadas específicas.
+     * Busca y retorna un compuerta en coordenadas específicas.
      */
-    Portal* getPortalEn(int x, int y) const;
+    Compuerta* getCompuertaEn(int x, int y) const;
     
     /**
-     * Determina si hay un portal en la posición indicada.
+     * Determina si hay un compuerta en la posición indicada.
      */
-    bool esPortal(int x, int y) const;
+    bool esCompuerta(int x, int y) const;
 
     /**
      * Verifica que las coordenadas no se salgan del arreglo de la matriz.
@@ -92,19 +89,19 @@ public:
     /**
      * Verifica si el bloque con id dado coincide en color con la salida en (x,y).
      */
-    bool comprobarMeta(int idBloque, int x, int y) const;
+    bool comprobarMeta(int idxBloque, int x, int y, int tiempoG) const;
 
     // --- Getters Lineales ---
     inline int getWidth() const       { return width; }
     inline int getHeight() const      { return height; }
     inline int getNumBloques() const  { return numBloques; }
     inline int getNumSalidas() const  { return numSalidas; }
-    inline int getNumPortales() const { return numPortales; }
+    inline int getNumCompuertas() const { return numCompuertas; }
     
     // Acceso a punteros por índice
     Bloque* getBloquePtr(int i) const;
     Salida* getSalidaPtr(int i) const;
-    Portal* getPortalPtr(int i) const;
+    Compuerta* getCompuertaPtr(int i) const;
 
     bool esPared(int f, int c) const {
     // Retorna true si la celda contiene '#'
@@ -115,6 +112,7 @@ public:
     // --- Visualización ---
     // Imprime el tablero en consola usando printf para cumplir "Sin STL"
     void imprimir();
+    bool esObstaculo(int x, int y, int tiempoG, char colorBloque) const;
 };
 
 #endif
