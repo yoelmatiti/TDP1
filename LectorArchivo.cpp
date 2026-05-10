@@ -69,7 +69,10 @@ Tablero* LectorArchivo::cargarNivel(const char* ruta) {
                         }
                     }
                 }
-                tablero->agregarBloque(new Bloque(id, color, ix, iy, bw, bh, geo));
+                Bloque* b = new Bloque(id, color, 0, 0, bw, bh, geo);
+                b->setX(ix);
+                b->setY(iy);
+                tablero->agregarBloque(b);
             }
         }
         

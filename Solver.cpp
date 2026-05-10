@@ -27,6 +27,13 @@ bool Solver::resolver() {
     int estadosProcesados = 0;
     int nB = tableroMaestro->getNumBloques();
 
+    if (nB == 0) {
+        printf("[ERROR] Tablero maestro no contiene bloques. Abortando.\n");
+        return false;
+    }
+
+    printf("[DEBUG] Iniciando búsqueda con %d bloques\n", nB);
+
     // 2. Capturar estado inicial
     PosBloque* posIniciales = capturarPosicionesActuales(); 
     

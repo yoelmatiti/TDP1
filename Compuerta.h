@@ -4,51 +4,83 @@
 #include "Movimiento.h"
 
 /**
- * Clase Compuerta (Compuerta Dinámica)
- * Actúa como un filtro en el tablero que permite o bloquea el paso
- * según el color, el tiempo (g) y las dimensiones del bloque.
+ * @class Compuerta
+ * @brief Representa un obstáculo dinámico que cambia de color según el tiempo.
+ * * Las compuertas actúan como filtros: solo permiten el paso de bloques cuyo 
+ * color coincida con el color actual de la compuerta en un turno (paso) específico.
  */
 class Compuerta {
 private:
-    int x, y;               // Posición en el tablero
-    char orientacion;       // 'V' (Vertical) o 'H' (Horizontal)
-    
-    char* cicloColores;     // Arreglo dinámico de estados/colores
-    int numColores;         // Tamaño del ciclo
-    int pasoCambio;         // Cada cuántos turnos (g) cambia el color
+    // El orden de declaración aquí debe coincidir con la lista de inicialización en el .cpp
+    int x, y;               ///< Posición de la celda de la compuerta en el tablero.
+    char orientacion;       ///< 'V' (Vertical) o 'H' (Horizontal). Define la restricción física.
+    char* cicloColores;     ///< Arreglo dinámico (C-string) que almacena la secuencia de colores.
+    int numColores;         ///< Cantidad total de estados de color en el ciclo.
+    int pasoCambio;         ///< Frecuencia de cambio (cada cuántos turnos 'g' cambia el color).
 
 public:
-    // --- Constructores y Destructor ---
+    // --- Gestión de Ciclo de Vida (Regla de los Tres) ---
+
+    /** @brief Constructor por defecto. Inicializa una compuerta vacía. */
     Compuerta();
-    Compuerta(int _x, int _y, int _p, char _ori);
+
+    /** * @brief Constructor parametrizado.
+     * @param _x Coordenada X.
+     * @param _y Coordenada Y.
+     * @param _p Paso de cambio (velocidad).
+     * @param _ciclo Cadena de caracteres con los colores (ej: "rgb").
+     */
+    Compuerta(int _x, int _y, int _p, const char* _ciclo);
     
-    // Regla de los tres (Gestión de memoria profunda)
+    /** @brief Constructor de copia para asegurar duplicación profunda de cicloColores. */
     Compuerta(const Compuerta& otro);
+
+    /** @brief Operador de asignación. Maneja la liberación de memoria previa y copia profunda. */
     Compuerta& operator=(const Compuerta& otro);
+
+    /** @brief Destructor. Libera la memoria dinámica de cicloColores. */
     ~Compuerta();
 
-    // --- Lógica de Configuración ---
-    void agregarColorAlCiclo(char c);
-
     // --- Lógica de Estado y Tiempo ---
-    // Determina el color en el tiempo g mediante aritmética modular O(1)
+
+    /** * @brief Determina qué color muestra la compuerta en un turno específico.
+     * @param tiempoG El tiempo actual del estado (g).
+     * @return El carácter que representa el color activo.
+     */
     char getColorActual(int tiempoG) const;
     
-    // Retorna el color inicial (tiempo 0) para dibujo o depuración
+    /** @brief Obtiene el color de la compuerta en el tiempo 0. */
     char getColor() const; 
 
-    // --- Lógica de Validación de Paso ---
-    // Verifica color y estado de pared ('#')
-   
+    // --- Lógica de Validación de Movimiento ---
     
-    // Verifica si el tamaño del bloque es apto para la orientación de la compuerta
-    bool verificarDimension(int anchoBloque, int altoBloque) const;
+    /** * @brief Comprueba si un bloque puede atravesar la compuerta.
+     * @param colorBloque Color del bloque que intenta pasar.
+     * @param paso Turno actual del sistema.
+     * @return true si los colores coinciden o el bloque es un comodín.
+     */
     bool puedePasar(char colorBloque, int paso) const;
-    // --- Getters Simples ---
+
+    /** * @brief Verifica si el tamaño del bloque es físicamente compatible con la apertura.
+     */
+    bool verificarDimension(int anchoBloque, int altoBloque) const;
+
+    /**
+     * @brief Calcula dónde aparecerá el bloque tras atravesar la compuerta.
+     * @param outX Referencia para devolver la nueva coordenada X.
+     * @param outY Referencia para devolver la nueva coordenada Y.
+     */
+    void calcularDestino(int bloqueX, int bloqueY, int anchoB, int altoB, Direccion dir, int& outX, int& outY) const;
+
+    // --- Configuración Dinámica ---
+
+    /** @brief Permite expandir el ciclo de colores agregando uno nuevo al final. */
+    void agregarColorAlCiclo(char c);
+
+    // --- Consultores (Getters) ---
     int getX() const;
     int getY() const;
     char getOrientacion() const;
-    void calcularDestino(int bloqueX, int bloqueY, int anchoB, int altoB, Direccion dir, int& outX, int& outY) const;
 };
 
 #endif

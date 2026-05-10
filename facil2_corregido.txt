@@ -1,0 +1,42 @@
+[META]
+NAME = RETO_50_ESTADOS
+WIDTH = 14
+HEIGHT = 14
+STEP_LIMIT = 500
+
+[BLOCK]
+# Bloque Rojo: Debe cruzar todo el tablero
+1 COLOR=r WIDTH=2 HEIGHT=2 INIT_X=1 INIT_Y=6 GEOMETRY=1 1 1 1
+# Bloque Azul: Barrera vertical 1
+2 COLOR=b WIDTH=2 HEIGHT=4 INIT_X=4 INIT_Y=2 GEOMETRY=1 1 1 1 1 1 1 1
+# Bloque Verde: Barrera vertical 2
+3 COLOR=g WIDTH=2 HEIGHT=4 INIT_X=4 INIT_Y=8 GEOMETRY=1 1 1 1 1 1 1 1
+# Bloque Amarillo: Obstáculo horizontal
+4 COLOR=y WIDTH=4 HEIGHT=2 INIT_X=7 INIT_Y=6 GEOMETRY=1 1 1 1 1 1 1 1
+# Bloque Cyan: Bloqueo final
+5 COLOR=c WIDTH=2 HEIGHT=4 INIT_X=10 INIT_Y=5 GEOMETRY=1 1 1 1 1 1 1 1
+
+[WALL]
+##############
+#            #
+#            #
+#            #
+#            #
+#            #
+#            #
+#            #
+#            #
+#            #
+#            #
+#            #
+#            #
+##############
+
+[EXIT]
+COLOR=r X=13 Y=6 ORIENTATION=V LI=2 LF=2 STEP=0
+COLOR=b X=4 Y=0 ORIENTATION=H LI=2 LF=2 STEP=0
+COLOR=g X=4 Y=13 ORIENTATION=H LI=2 LF=2 STEP=0
+COLOR=y X=13 Y=10 ORIENTATION=V LI=2 LF=2 STEP=0
+COLOR=c X=13 Y=2 ORIENTATION=V LI=2 LF=2 STEP=0
+
+[GATE]

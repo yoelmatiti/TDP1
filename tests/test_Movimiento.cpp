@@ -6,7 +6,7 @@
 #include "Bloque.h"
 #include "Salida.h"
 #include "Compuerta.h" 
-
+#include <cstring>
 /**
  * Función auxiliar para crear una geometría simple de 1x1.
  * En un entorno real, Bloque debería encargarse de su propia memoria,
@@ -101,7 +101,7 @@ void test_compuerta_color() {
     
     // Compuerta de color 'B' (Azul) en el camino (2, 1)
     // Constructor asume: X, Y, Paso_o_ID, Color
-    Compuerta* p1 = new Compuerta(2, 1, 0, 'B'); 
+    Compuerta* p1 = new Compuerta(2, 1, 0, "B"); 
     t.agregarCompuerta(p1);
 
     PosBloque* pos = new PosBloque[1];

@@ -204,12 +204,25 @@ void Tablero::agregarCompuerta(Compuerta* p) {
 
 bool Tablero::esObstaculo(int x, int y, int tiempoG, char colorBloque) const {
     if (!enLimites(x, y)) return true;
-    if (matriz[y][x] == '#') return true;
 
+    // SEGURIDAD: Solo iterar si el arreglo de salidas existe
+    if (salidas != nullptr) {
+        for (int i = 0; i < numSalidas; i++) {
+            if (salidas[i] != nullptr && 
+                salidas[i]->esParteDeSalida(y, x, tiempoG) && 
+                tolower(salidas[i]->getColor()) == tolower(colorBloque)) {
+                return false; // Es meta: se puede pisar aunque haya un '#'
+            }
+        }
+    }
+
+    if (matriz[y][x] == '#') return true;
+    // 4. Compuertas
     Compuerta* cp = getCompuertaEn(x, y);
     if (cp) {
         if (!cp->puedePasar(colorBloque, tiempoG)) return true;
     }
+    
     return false;
 }
 
@@ -230,8 +243,8 @@ void Tablero::actualizarDesdeEstado(State* s) {
     }
 
     // 2. CAPA DE INFRAESTRUCTURA (Dibujado antes que los bloques)
-    
-    
+    // Las paredes están preservadas por no limpiarlas con espacios.
+    // De esta forma el orden es: limpiar -> paredes -> salidas -> compuertas -> bloques.
     // 2.1 Salidas DINÁMICAS
     for (int i = 0; i < numSalidas; i++) {
         Salida* sal = salidas[i];
@@ -356,31 +369,32 @@ Compuerta* Tablero::getCompuertaEn(int x, int y) const {
     }
     return nullptr; // No hay compuerta en esa coordenada
 }
-
 bool Tablero::comprobarMeta(int idxBloque, int x, int y, int tiempoG) const {
+    // 1. Validar índice (Sin etiquetas de texto adicionales)
     if (idxBloque < 0 || idxBloque >= numBloques) return false;
+
     Bloque* b = bloques[idxBloque];
-    
-    // El bloque sale si TODAS sus celdas ocupadas están sobre una salida válida
+    bool tocaSalida = false;
+
+    // 2. Recorrer la geometría del bloque
     for (int rY = 0; rY < b->getAltoGeo(); rY++) {
         for (int rX = 0; rX < b->getAnchoGeo(); rX++) {
             if (b->getGeometria(rY, rX)) {
                 int tx = x + rX;
                 int ty = y + rY;
                 
-                bool enSalidaValida = false;
+                // 3. Verificar colisión con alguna salida válida
                 for (int i = 0; i < numSalidas; i++) {
-                    // Verificamos: ¿Esta celda es parte de la salida en este tiempo G?
-                    // ¿Y el color coincide?
-                    if (salidas[i]->esParteDeSalida(ty, tx, tiempoG) && 
+                    if (salidas[i] != nullptr && 
+                        salidas[i]->esParteDeSalida(ty, tx, tiempoG) && 
                         tolower(salidas[i]->getColor()) == tolower(b->getColor())) {
-                        enSalidaValida = true;
+                        
+                        tocaSalida = true; 
                         break;
                     }
                 }
-                if (!enSalidaValida) return false; 
             }
         }
     }
-    return true; 
+    return tocaSalida; 
 }

@@ -36,8 +36,8 @@ public:
     ~TablaHash();
 
     /**
-     * Inserta un puntero al estado en la tabla. 
-     * Nota: La TablaHash no debe borrar el objeto State, eso lo hace el Solver.
+     * Inserta un puntero al estado en la tabla.
+     * La TablaHash asume propiedad del State cuando se inserta en closed.
      */
     bool insertar(State* s); 
 

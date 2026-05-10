@@ -13,7 +13,7 @@ int main() {
 
     // 1. Cargar el escenario usando LectorArchivo
     LectorArchivo lector;
-    Tablero* tab = lector.cargarNivel("simple1.txt");
+    Tablero* tab = lector.cargarNivel("dificil1.txt");
     
     if (!tab) {
         std::cerr << "Error critico: No se pudo cargar el archivo de nivel." << std::endl;
@@ -64,16 +64,28 @@ int main() {
         std::cout << "Pistas: Revisar Tablero::esPared o Bloque::ocupaCelda." << std::endl;
     }
 
-    // 5. TEST DE COLISIÓN (Intento de atravesar un muro o bloque)
-    // Intentamos mover a la izquierda (U o L) donde suele haber pared en los bordes.
-    std::cout << "\nTest 4: Intento de colision (Hacia la izquierda contra muro/bloque)" << std::endl;
-    State* estadoInvalido = Movimiento::ejecutar(0, Direccion::L, estadoInicial, tab);
+    // 5. TEST DE COLISIÓN REAL (Hacia arriba, contra la pared de la fila 0)
+    std::cout << "\nTest 4: Intento de colision (Hacia ARRIBA contra el techo)" << std::endl;
     
-    if (!estadoInvalido) {
-        imprimirResultado("Colision detectada correctamente (Bloqueo exitoso)", true);
-    } else {
-        imprimirResultado("ERROR: El bloque atraveso un obstaculo.", false);
-        delete estadoInvalido;
+    // El bloque está en Y=4. Para chocar con el techo (Y=0), 
+    // movemos varias veces hasta que deba chocar.
+    State* temp = estadoInicial;
+    State* sig = nullptr;
+    
+    // Movemos hacia arriba (U) 4 veces. En la 4ta debería chocar.
+    for(int i=0; i<5; i++) {
+        sig = Movimiento::ejecutar(0, Direccion::U, temp, tab);
+        if(!sig) {
+            imprimirResultado("Colision detectada contra el techo correctamente", true);
+            break;
+        }
+        if(temp != estadoInicial) delete temp;
+        temp = sig;
+    }
+
+    if (sig) {
+        imprimirResultado("ERROR: El bloque atraveso el techo del tablero.", false);
+        delete sig;
     }
 
     // 6. Limpieza final

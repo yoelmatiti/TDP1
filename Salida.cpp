@@ -64,27 +64,27 @@ bool Salida::esParteDeSalida(int f, int c, int tiempoG) const {
     int L = getLongitudActual(tiempoG);
     if (L <= 0) return false;
 
-    // 1. Calcular distancia relativa desde el origen de la salida
     int diffX = c - x;
     int diffY = f - y;
 
-    int pasoK; // Representa cuántos pasos hay desde el origen (x,y)
-    
-    if (direccionX != 0) {
-        if (diffY != 0 && direccionY == 0) return false; // Desalineado en Y
-        pasoK = diffX / direccionX;
-    } else if (direccionY != 0) {
-        if (diffX != 0) return false; // Desalineado en X
-        pasoK = diffY / direccionY;
-    } else {
-        // Salida de un solo punto
+    // Caso 1: Salida Horizontal (direccionX != 0, direccionY == 0)
+    if (direccionX != 0 && direccionY == 0) {
+        if (diffY != 0) return false; // No está en la misma fila
+        int pasoK = diffX / direccionX;
+        return (pasoK >= 0 && pasoK < L && (diffX % direccionX == 0));
+    }
+    // Caso 2: Salida Vertical (direccionX == 0, direccionY != 0)
+    else if (direccionY != 0 && direccionX == 0) {
+        if (diffX != 0) return false; // No está en la misma columna
+        int pasoK = diffY / direccionY;
+        return (pasoK >= 0 && pasoK < L && (diffY % direccionY == 0));
+    }
+    // Caso 3: Salida de punto único (ambas direcciones son 0)
+    else if (direccionX == 0 && direccionY == 0) {
         return (diffX == 0 && diffY == 0);
     }
 
-    // 3. Verificar si el paso K es válido (está dentro de la línea y de la longitud L)
-    return (pasoK >= 0 && pasoK < L && 
-            diffX == pasoK * direccionX && 
-            diffY == pasoK * direccionY);
+    return false;
 }
 
 // En Salida.h / Salida.cpp
