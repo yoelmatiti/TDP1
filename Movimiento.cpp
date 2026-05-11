@@ -66,11 +66,7 @@ State* Movimiento::ejecutar(int bloqueIdx, Direccion dir, State* actual, Tablero
 
     // --- CORRECCIÓN DEL ERROR DE COMPROBARMETA ---
     // Quitamos el cuarto argumento (G) porque tu Tablero.h no lo tiene
-    if (tableroEstatico->comprobarMeta(bloqueIdx, NX, NY, actual->getG())) {
-    nuevasPos[bloqueIdx].activo = false;
-    }else {
-        nuevasPos[bloqueIdx].activo = true;
-    }
+    nuevasPos[bloqueIdx].activo = !tableroEstatico->comprobarMeta(bloqueIdx, NX, NY, actual->getG() + 1);
 
     const char* nombres[] = {"U", "D", "L", "R"};
     char desc[32];

@@ -203,29 +203,36 @@ void Tablero::agregarCompuerta(Compuerta* p) {
 }
 
 bool Tablero::esObstaculo(int x, int y, int tiempoG, char colorBloque) const {
+    // 1. Límites físicos del arreglo
     if (!enLimites(x, y)) return true;
 
-    // SEGURIDAD: Solo iterar si el arreglo de salidas existe
+    // 2. Verificar Salidas (ESTA ES LA CLAVE)
     if (salidas != nullptr) {
         for (int i = 0; i < numSalidas; i++) {
-            if (salidas[i] != nullptr && 
-                salidas[i]->esParteDeSalida(y, x, tiempoG) && 
-                tolower(salidas[i]->getColor()) == tolower(colorBloque)) {
-                return false; // Es meta: se puede pisar aunque haya un '#'
+            if (salidas[i] != nullptr && salidas[i]->esParteDeSalida(y, x, tiempoG)) {
+                // Si la celda ES una salida:
+                // Retorna FALSE (no es obstáculo) solo si el color coincide.
+                // Si el color NO coincide, retorna TRUE (es un obstáculo para este bloque).
+                if (tolower(salidas[i]->getColor()) == tolower(colorBloque)) {
+                    return false; 
+                } else {
+                    return true; 
+                }
             }
         }
     }
 
+    // 3. Paredes estáticas (#)
     if (matriz[y][x] == '#') return true;
+
     // 4. Compuertas
     Compuerta* cp = getCompuertaEn(x, y);
     if (cp) {
         if (!cp->puedePasar(colorBloque, tiempoG)) return true;
     }
     
-    return false;
+    return false; // Celda libre
 }
-
 // ============================================================
 // 3. RENDERIZADO (CORREGIDO Y SIN STL)
 // ============================================================

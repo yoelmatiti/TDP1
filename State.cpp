@@ -39,7 +39,9 @@ State::State(int nBloques, PosBloque* posNuevas, int g_val, int h_val, State* p,
 }
 
 bool State::operator==(const State& other) const {
-    if (this->numBloques != other.numBloques) return false;
+    // ELIMINAMOS la comparación de 'g'
+    if (this->numBloques != other.numBloques) return false; 
+    
     for (int i = 0; i < numBloques; i++) {
         if (posiciones[i].x != other.posiciones[i].x ||
             posiciones[i].y != other.posiciones[i].y ||
@@ -116,16 +118,13 @@ State::~State() {
 }
 
 long long State::getHash() const {
-    // Usamos unsigned para evitar desbordamientos definidos
     unsigned long long h_val = 5381; 
-
     for (int i = 0; i < numBloques; i++) {
-        // Desplazamiento de bits (h * 33 + valor) es más rápido que la multiplicación pura
         h_val = ((h_val << 5) + h_val) ^ (unsigned int)posiciones[i].x;
         h_val = ((h_val << 5) + h_val) ^ (unsigned int)posiciones[i].y;
         h_val = ((h_val << 5) + h_val) ^ (unsigned int)(posiciones[i].activo ? 1 : 0);
     }
-    
+    // NO incluir 'g' en el hash para detectar ciclos de posición
     return (long long)h_val;
 }
 

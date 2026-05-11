@@ -45,11 +45,14 @@ bool Solver::resolver() {
     
     // 3. Inicializar búsqueda
     open.push(root);
-    closed.insertar(root); 
+    // No insertar root a closed aún
 
     while (!open.estaVacio()) {
         State* actual = open.pop();
         if (!actual) continue;
+
+        // Marcar como visitado inmediatamente después de sacarlo del heap
+        closed.insertar(actual);
 
         // 4. Condición de Victoria: ¿Todos los bloques están inactivos/salieron?
         if (esEstadoFinal(actual)) {
@@ -115,13 +118,16 @@ void Solver::expandirEstado(State* actual) {
             State* nuevo = Movimiento::ejecutar(i, d, actual, tableroMaestro);
             
             if (nuevo != nullptr) {
-                // Verificar si ya visitamos este estado (O(1) o O(log N))
                 if (!closed.existe(nuevo)) {
                     nuevo->setH(calcularHeuristica(nuevo));
-                    open.push(nuevo);     // Insertar en Heap
-                    closed.insertar(nuevo); // Marcar como visitado
+                    
+                    // ¡CRÍTICO!: Insertar aquí para que nadie más intente 
+                    // meter este mismo estado mientras espera en el Heap
+                    closed.insertar(nuevo); 
+                    
+                    open.push(nuevo);
                 } else {
-                    delete nuevo; // Si ya existe, liberar memoria inmediatamente
+                    delete nuevo; 
                 }
             }
         }

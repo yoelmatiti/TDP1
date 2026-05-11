@@ -1,6 +1,6 @@
 #include <iostream>
 #include "Tablero.h"
-#include "LectorArchivo.h" // Cambiado de Parser.h
+#include "LectorArchivo.h" 
 #include "State.h"
 #include "Movimiento.h"
 

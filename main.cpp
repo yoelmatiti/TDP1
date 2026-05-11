@@ -23,7 +23,7 @@ int main() {
     char secuenciaManual[512];
     Tablero* tableroActual = nullptr;
     LectorArchivo lector;
-    Solver solver;
+    Solver* solver = nullptr;
 
     do {
         mostrarMenu();
@@ -43,6 +43,11 @@ int main() {
                 // Liberar memoria previa antes de cargar un nuevo tablero [cite: 244]
                 if (tableroActual != nullptr) {
                     delete tableroActual;
+                    tableroActual = nullptr;
+                }
+                if (solver != nullptr) {
+                    delete solver;
+                    solver = nullptr;
                 }
                 
                 tableroActual = lector.cargarNivel(nombreArchivo);
@@ -56,42 +61,48 @@ int main() {
             case 2:
                 if (tableroActual != nullptr) {
                     printf("Iniciando Solver A*...\n");
-                    // El solver debe encontrar la secuencia eficiente [cite: 126, 248]
-                    if (solver.resolver(tableroActual)) {
-                        // Al resolver, se debe mostrar el tiempo y la secuencia 
+                    clock_t tInicio = clock();
+                    
+                    // Liberar solver previo
+                    if (solver != nullptr) {
+                        delete solver;
+                    }
+                    // Se asocia el tablero al solver y se ejecuta la búsqueda
+                    solver = new Solver(tableroActual);
+                    if (solver->resolver()) {
+                        clock_t tFin = clock();
+                        double tiempoMs = ((double)(tFin - tInicio) / CLOCKS_PER_SEC) * 1000;
+                        
                         printf("Solucion encontrada.\n");
+                        printf("Tiempo resolucion: %.2f [mseg]\n", tiempoMs);
+                        printf("Pasos: ");
+                        solver->imprimirCamino(); // Imprime el camino
                     } else {
-                        printf("Juego sin solucion.\n"); // [cite: 133]
+                        printf("Juego sin solucion.\n");
                     }
                 } else {
-                    printf("[!] Primero debe cargar un nivel (Opcion 1).\n");
+                    printf("[!] Debe cargar un tablero primero (Opcion 1).\n");
                 }
                 break;
 
             case 3:
-                if (tableroActual != nullptr) {
-                    // El menú debe permitir mostrar el tablero según los pasos resueltos 
-                    printf("Mostrando visualizacion de la solucion...\n");
-                    // Aquí se invoca la lógica de visualización paso a paso
+                if (tableroActual != nullptr && solver != nullptr && solver->getEstadoFinal() != nullptr) {
+                    printf("Mostrando visualizacion de la solucion paso a paso...\n");
+                    // Reiniciamos una copia del tablero para no perder el original
+                    Tablero visualizador(*tableroActual);
+                    // Por ahora, solo reimprimir el camino
+                    solver->imprimirCamino();
                 } else {
-                    printf("[!] No hay una solucion cargada para visualizar.\n");
+                    printf("[!] No hay una solucion cargada para visualizar. Ejecute la opcion 2 primero.\n");
                 }
                 break;
 
             case 4:
-                if (tableroActual != nullptr) {
-                    // El menú debe permitir ingresar una secuencia manual de movimientos 
-                    printf("Ingrese secuencia (ej. U1,2D2,1): ");
-                    scanf("%s", secuenciaManual);
-                    printf("Procesando secuencia: %s\n", secuenciaManual);
-                    // Lógica para aplicar los movimientos al tablero inicial
-                } else {
-                    printf("[!] Debe cargar un tablero primero.\n");
-                }
+                printf("Opcion no implementada aun.\n");
                 break;
 
             case 5:
-                printf("Saliendo del programa...\n"); // [cite: 128]
+                printf("Saliendo del programa...\n");
                 break;
 
             default:
@@ -100,10 +111,7 @@ int main() {
         }
     } while (opcion != 5);
 
-    // Limpieza final de memoria [cite: 244]
-    if (tableroActual != nullptr) {
-        delete tableroActual;
-    }
-
+    if (tableroActual != nullptr) delete tableroActual;
+    if (solver != nullptr) delete solver;
     return 0;
 }
